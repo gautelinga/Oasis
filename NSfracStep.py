@@ -1,13 +1,13 @@
 __author__ = "Mikael Mortensen <mikaem@math.uio.no>"
 __date__ = "2013-11-06"
 __copyright__ = "Copyright (C) 2013 " + __author__
-__license__  = "GNU Lesser GPL version 3 or any later version"
+__license__ = "GNU Lesser GPL version 3 or any later version"
 
-"""
-This module implements a generic form of the fractional step method for 
-solving the incompressible Navier-Stokes equations. There are several 
-possible implementations of the pressure correction and the more low-level 
-details are chosen at run-time and imported from any one of:
+"""This module implements a generic form of the fractional step method
+for solving the incompressible Navier-Stokes equations. There are
+several possible implementations of the pressure correction and the
+more low-level details are chosen at run-time and imported from any
+one of:
 
   solvers/NSfracStep/IPCS_ABCN.py    # Implicit convection
   solvers/NSfracStep/IPCS_ABE.py     # Explicit convection
@@ -16,19 +16,18 @@ details are chosen at run-time and imported from any one of:
   solvers/NSfracStep/BDFPC_Fast.py   # Fast Backwards Differencing IPCS in rotational form
   solvers/NSfracStep/Chorin.py       # Naive
 
-The naive solvers are very simple and not optimized. They are intended 
-for validation of the other optimized versions. The fractional step method 
-can be used both non-iteratively or with iterations over the pressure-
-velocity system.
+The naive solvers are very simple and not optimized. They are intended
+for validation of the other optimized versions. The fractional step
+method can be used both non-iteratively or with iterations over the
+pressure- velocity system.
 
-The velocity vector is segregated, and we use three (in 3D) scalar 
+The velocity vector is segregated, and we use three (in 3D) scalar
 velocity components.
 
-Each new problem needs to implement a new problem module to be placed in
-the problems/NSfracStep folder. From the problems module one needs to import 
-a mesh and a control dictionary called NS_parameters. See 
+Each new problem needs to implement a new problem module to be placed
+in the problems/NSfracStep folder. From the problems module one needs
+to import a mesh and a control dictionary called NS_parameters. See
 problems/NSfracStep/__init__.py for all possible parameters.
-    
 """
 from common import *
 

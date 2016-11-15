@@ -69,7 +69,7 @@ def info_blue(s, check=True):
 def info_green(s, check=True):
     if MPI.rank(mpi_comm_world())==0 and check:
         print GREEN % s
-    
+
 def info_red(s, check=True):
     if MPI.rank(mpi_comm_world())==0 and check:
         print RED % s

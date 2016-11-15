@@ -12,6 +12,7 @@ from os import getcwd, makedirs
 import numpy as np
 import random
 import itertools
+from common.ductutils import *
 
 folder = "SimpleDuct_results"
 # restart_folder = folder + "/data/4/Checkpoint"
@@ -33,7 +34,7 @@ rescale = True  # Remember to turn this off!
 spark_puff = True
 puff_center = np.array([0.5, 0.5, 20.])
 puff_radius = 0.4
-puff_magnitude = 0.1
+puff_magnitude = 0.2
 
 # Kept for later...
 init_folder = "SimpleDuct_results/data/1/Timeseries/"
@@ -49,82 +50,22 @@ nu = 9.e-6
 Re_target = 2000.
 shape_factor = 0.03513
 F_0 = Re_target * nu**2 / shape_factor
+u_target = Re_target * nu  # cross-sectional area 1
 
 
-def make_dof_coords(S):
-    dofmap = S.dofmap()
-    my_first, my_last = dofmap.ownership_range()
-    x = S.tabulate_dof_coordinates().reshape((-1, 3))
-    unowned = dofmap.local_to_global_unowned()
-    dofs = filter(lambda dof: dofmap.local_to_global_index(dof)
-                  not in unowned,
-                  xrange(my_last-my_first))
-    x = x[dofs]
-    return x
-
-
-def make_xdict(x_data):
-    if rank == 0:
-        xdict = dict([(tuple(x_list), i) for i, x_list in
-                      enumerate(x_data.tolist())])
+def build_wall_coords():
+    if start_from_scratch:
+        with h5py.File(mesh_file, "r") as h5f:
+            nodes = np.array(h5f["mesh/coordinates"])
+            elems = np.array(h5f["mesh/topology"])
     else:
-        xdict = None
-    xdict = comm.bcast(xdict, root=0)
-    return xdict
+        with h5py.File(h5fu_str, "r") as h5f:
+            nodes = np.array(h5f["Mesh/0/coordinates"])
+            elems = np.array(h5f["Mesh/0/topology"])
+    inlet_wall_coords = tabulate_inlet_wall_nodes(nodes, elems)
+    return inlet_wall_coords
 
-
-def tabulate_inlet_wall_nodes(nodes, elems):
-    info_green("Building inlet wall nodes")
-    node_ids = set(np.where(nodes[:, 2] == 0.)[0])
-    faces = []
-    for i in xrange(rank, len(elems), size):
-        row = elems[i, :]
-        nodes_in_node_ids = []
-        for node in row:
-            if node in node_ids:
-                nodes_in_node_ids.append(node)
-        if len(nodes_in_node_ids) == 3:
-            nodes_in_node_ids.sort()
-            faces.append(tuple(nodes_in_node_ids))
-    data = comm.gather(faces, root=0)
-    if rank == 0:
-        faces = np.array(list(itertools.chain.from_iterable(data)))
-    faces = comm.bcast(faces, root=0)
-    edges = set()
-    for face in faces:
-        for i in xrange(3):
-            seg = [face[i], face[(i+1) % 3]]
-            seg.sort()
-            seg = tuple(seg)
-            if seg in edges:
-                edges.remove(seg)
-            else:
-                edges.add(seg)
-    edges = np.array(list(edges))
-    wall_nodes = np.unique(edges.flatten())
-
-    wall_coords = set()
-    for node in wall_nodes:
-        wall_coords.add(tuple(nodes[node, 0:2]))
-    return wall_coords
-
-if start_from_scratch:
-    with h5py.File(mesh_file, "r") as h5f:
-        nodes = np.array(h5f["mesh/coordinates"])
-        elems = np.array(h5f["mesh/topology"])
-else:
-    with h5py.File(h5fu_str, "r") as h5f:
-        nodes = np.array(h5f["Mesh/0/coordinates"])
-        elems = np.array(h5f["Mesh/0/topology"])
-inlet_wall_coords = tabulate_inlet_wall_nodes(nodes, elems)
-
-
-def set_val(f, f_data, x, xdict):
-    vec = f.vector()
-    values = vec.get_local()
-    values[:] = [f_data[xdict[tuple(x_val)]] for x_val in x.tolist()]
-    vec.set_local(values)
-    vec.apply('insert')
+inlet_wall_coords = build_wall_coords()
 
 
 # Create a mesh here
@@ -158,9 +99,9 @@ if restart_folder:
     restart_folder = path.join(getcwd(), restart_folder)
     f = open(path.join(restart_folder, 'params.dat'), 'r')
     NS_parameters.update(cPickle.load(f))
-    NS_parameters['dt'] = 0.2*10
+    NS_parameters['dt'] = 0.2
     NS_parameters['checkpoint'] = 1000
-    NS_parameters['save_step'] = 1
+    NS_parameters['save_step'] = 15
     NS_parameters['T'] += 500 * NS_parameters['save_step'] * NS_parameters['dt']
     NS_parameters['restart_folder'] = restart_folder
     NS_parameters['update_statistics'] = 10000 # new
@@ -170,14 +111,14 @@ if restart_folder:
 else:
     # Override some problem specific parameters
     NS_parameters.update(dict(
-        T=500.0 * 0.2 * 300 * 10,
-        dt=0.2 * 10,  # crank up? Usual: 0.2
+        T=500.0 * 0.2 * 300,
+        dt=0.2,  # crank up? Usual: 0.2
         nu=nu,
         # Re = Re,
         # Re_tau = Re_tau,
         checkpoint=1000,
         plot_interval=1,
-        save_step=1,
+        save_step=15,
         folder=folder,
         max_iter=1,
         velocity_degree=1,
@@ -272,7 +213,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
         set_val(u0y, u_data[:, 1], x, xdict)
         set_val(u0z, u_data[:, 2], x, xdict)
         set_val(p0, p_data[:], x, xdict)
-        
+
         info_green("Projecting u0x...")
         u0x = interpolate_nonmatching_mesh(u0x, V)
         info_green("Projecting u0y...")
@@ -283,53 +224,10 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
         p0 = interpolate_nonmatching_mesh(p0, V)
 
         if spark_puff:
-            dist_to_center = np.sqrt((x_data[:, 0]-puff_center[0])**2 +
-                                     (x_data[:, 1]-puff_center[1])**2 +
-                                     (x_data[:, 2]-puff_center[2])**2)
-            length = len(dist_to_center)
-            envelope = np.zeros(length)
-            ids_within = dist_to_center <= puff_radius
-            envelope[ids_within] = (
-                np.exp(-(2*dist_to_center[ids_within]/puff_radius)**2) -
-                np.exp(-2.**2))
-
-            info_red("Making streamfunction")
-            phi_x = Function(S)
-            phi_y = Function(S)
-            phi_z = Function(S)
-        
-            set_val(phi_x,
-                    envelope*np.random.normal(size=length),
-                    x, xdict)
-            set_val(phi_y,
-                    envelope*np.random.normal(size=length),
-                    x, xdict)
-            set_val(phi_z,
-                    envelope*np.random.normal(size=length),
-                    x, xdict)
-
-            info_red("Creating Sv")
-            Sv = VectorFunctionSpace(S.mesh(),
-                                     S.ufl_element().family(),
-                                     S.ufl_element().degree())
-            info_blue("Projecting u_puff")
-            u_puff = project(curl(as_vector((phi_x, phi_y, phi_z))),
-                             Sv,
-                             solver_type="gmres",
-                             preconditioner_type="amg")
-
-            u_puff_norm = norm(u_puff)
-            info_blue("u_puff_norm = {}".format(u_puff_norm))
-            u_puff.vector()[:] = (
-                puff_magnitude*Re_target*nu*u_puff.vector()[:]/u_puff_norm)
-            
-            info_green("Interpolating u_puff_x")
-            u_puff_x = interpolate_nonmatching_mesh(u_puff.sub(0), V)
-            info_green("Interpolating u_puff_y")
-            u_puff_y = interpolate_nonmatching_mesh(u_puff.sub(1), V)
-            info_green("Interpolating u_puff_z")
-            u_puff_z = interpolate_nonmatching_mesh(u_puff.sub(2), V)
-
+            u_puff_x, u_puff_y, u_puff_z = generate_puff_spark(
+                puff_center, puff_radius, puff_magnitude,
+                u_target,
+                x, x_data, xdict, S, V)
             u0x.vector()[:] = u0x.vector()[:] + u_puff_x.vector()[:]
             u0y.vector()[:] = u0y.vector()[:] + u_puff_y.vector()[:]
             u0z.vector()[:] = u0z.vector()[:] + u_puff_z.vector()[:]
