@@ -2,9 +2,11 @@ from mpi4py.MPI import COMM_WORLD
 import numpy as np
 from itertools import chain
 from fenicstools import interpolate_nonmatching_mesh
-#from dolfin import info_red, info_blue, info_green, Function, norm, \
-#    VectorFunctionSpace, curl, as_vector, project
-from problems.NSfracStep import *
+# from dolfin import info_red, info_blue, info_green, Function, norm, \
+#     VectorFunctionSpace, curl, as_vector, project
+from problems.NSfracStep import info_red, info_blue, info_green, \
+    Function, norm, \
+    VectorFunctionSpace, curl, as_vector, project
 
 
 comm = COMM_WORLD
