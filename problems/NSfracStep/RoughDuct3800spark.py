@@ -13,7 +13,7 @@ import numpy as np
 import random
 import itertools
 from common.ductutils import tabulate_inlet_wall_nodes, \
-    make_dof_coords, make_xdict, set_val
+    make_dof_coords, make_xdict, set_val, generate_puff_spark
 
 folder = "RoughDuct3800_results"
 # restart_folder = folder + "/data/4/Checkpoint"
