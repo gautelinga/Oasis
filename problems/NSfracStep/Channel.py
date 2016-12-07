@@ -131,9 +131,8 @@ def create_bcs(V, q_, q_1, q_2, sys_comp, u_components, **NS_namespace):
     bcs['u2'] = bc
     return bcs
 
+random.seed(2 + MPI.rank(mpi_comm_world()))
 class RandomStreamVector(Expression):
-    def __init__(self):
-        random.seed(2 + MPI.rank(mpi_comm_world()))
     def eval(self, values, x):
         values[0] = 0.0005*random.random()
         values[1] = 0.0005*random.random()
@@ -145,14 +144,15 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
     if restart_folder is None:
         # Initialize using a perturbed flow. Create random streamfunction
         Vv = VectorFunctionSpace(V.mesh(), V.ufl_element().family(), V.ufl_element().degree())
-        psi = interpolate(RandomStreamVector(), Vv)
+        psi = interpolate(RandomStreamVector(degree=1), Vv)
         u0 = project(curl(psi), Vv)
         u0x = project(u0[0], V, bcs=bcs['u0'])
         u1x = project(u0[1], V, bcs=bcs['u0'])
         u2x = project(u0[2], V, bcs=bcs['u0'])
         
         # Create base flow
-        y = interpolate(Expression("x[1] > 0 ? 1-x[1] : 1+x[1]"), V)
+        y = interpolate(Expression("x[1] > 0 ? 1-x[1] : 1+x[1]",
+                                   degree=1), V)
         uu = project(1.25*(utau/0.41*ln(conditional(y<1e-12, 1.e-12, y)*utau/nu)+5.*utau), V, bcs=bcs['u0'])
         
         # initialize vectors at two timesteps
