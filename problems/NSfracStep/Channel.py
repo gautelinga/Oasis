@@ -48,13 +48,13 @@ else:
     NS_parameters.update(Lx=Lx, Ly=Ly, Lz=Lz, Nx=Nx, Ny=Ny, Nz=Nz)
     
     # Override some problem specific parameters
-    T = 1.
+    T = 20.
     dt = 0.2
     nu = 2.e-5
     Re_tau = 178.12
     NS_parameters.update(
         update_statistics = 10,
-        save_statistics = 100,
+        save_statistics = 10, # 100
         check_flux = 10,
         checkpoint = 100,
         save_step = 100,
