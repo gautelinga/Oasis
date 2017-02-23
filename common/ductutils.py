@@ -72,6 +72,45 @@ def tabulate_inlet_wall_nodes(nodes, elems):
     return wall_coords
 
 
+def tabulate_wall_nodes(nodes, elems, dim):
+    info_green("Building inlet wall nodes")
+    info_green("Dimension: " + str(dim))
+    node_ids = set(np.where(nodes[:, dim] == 0.)[0])
+    faces = []
+    for i in xrange(rank, len(elems), size):
+        row = elems[i, :]
+        nodes_in_node_ids = []
+        for node in row:
+            if node in node_ids:
+                nodes_in_node_ids.append(node)
+        if len(nodes_in_node_ids) == 3:
+            nodes_in_node_ids.sort()
+            faces.append(tuple(nodes_in_node_ids))
+    data = comm.gather(faces, root=0)
+    if rank == 0:
+        faces = np.array(list(chain.from_iterable(data)))
+    faces = comm.bcast(faces, root=0)
+    edges = set()
+    for face in faces:
+        for i in xrange(3):
+            seg = [face[i], face[(i+1) % 3]]
+            seg.sort()
+            seg = tuple(seg)
+            if seg in edges:
+                edges.remove(seg)
+            else:
+                edges.add(seg)
+    edges = np.array(list(edges))
+    wall_nodes = np.unique(edges.flatten())
+
+    wall_coords = set()
+    perp_dims = range(3)
+    perp_dims.pop(dim)
+    for node in wall_nodes:
+        wall_coords.add(tuple(nodes[node, perp_dims]))
+    return wall_coords
+
+
 def set_val(f, f_data, x, xdict):
     vec = f.vector()
     values = vec.get_local()
