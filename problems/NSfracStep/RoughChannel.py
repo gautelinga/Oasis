@@ -25,24 +25,27 @@ size = comm.Get_size()
 # in hdf5 timeseries file) instead of the pseudo-laminar scaling that
 # Mads implemented.
 
-start_from_scratch = True
-mesh_file = "mesh/rough_channel_H8e-1_10x10x1_1.h5"
+start_from_scratch = False
+mesh_file = "mesh/rough_channel_H8e-1_10x10x1_2.h5"
 if path.isfile(mesh_file):
     info_red("Mesh: " + mesh_file)
 else:
     exit("Couldn't find mesh: " + mesh_file)
 
 # Kept for later...
-init_folder = "RoughChannel_results/data/1/Timeseries/"
+# init_folder = "RoughChannel_results/data/2/Timeseries/"
+init_folder = "init_states/rough_channel_H8e-1_10x10x1_2/Re860/"
 h5fu_str = init_folder + "u_from_tstep_0.h5"
 h5fp_str = init_folder + "p_from_tstep_0.h5"
+
 step = "0"  # which timestep within the timeseries do we initialize from?
 
 # Viscosity
 nu = 9.e-6
 
 # Body force
-F_0 = 6e-6
+# F_0 = 6e-6  # Re=600
+F_0 = 1.2e-5
 
 # Dimensions
 Lx = 10.
@@ -175,7 +178,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
 
         with h5py.File(h5fu_str, "r") as h5fu:
             u_data = np.array(h5fu.get("VisualisationVector/"+step))
-            x_data = np.array(h5fu.get("Mesh/0/coordinates"))
+            x_data = np.array(h5fu.get("Mesh/0/mesh/geometry"))
         with h5py.File(h5fp_str, "r") as h5fp:
             p_data = np.array(h5fp.get("VisualisationVector/"+step))
 
