@@ -47,7 +47,7 @@ F_0 = 6e-6
 dt = 0.2
 Nt = 500
 save_step = 150
-check_flux = 50
+check_flux = 10  # 50
 
 
 def get_mesh_properties(mesh_file):
@@ -314,7 +314,7 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                            ds(1, domain=mesh, subdomain_data=facets))
         e_kin = assemble(dot(u_, u_) *
                          ds(1, domain=mesh, subdomain_data=facets))
-        u_axial_vol = assemble(dot(u_, Constant((0., 0., 1.))*dx(domain=mesh)))
+        u_axial_vol = assemble(dot(u_, Constant((0., 0., 1.)))*dx(domain=mesh))
         e_kin_vol = assemble(dot(u_, u_)*dx(domain=mesh))
 
         if MPI.rank(mpi_comm_world()) == 0:
