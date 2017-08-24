@@ -325,6 +325,9 @@ def early_hook(mesh_file, folder, spark_puff, N, F, **NS_namespace):
         info_red("Couldn't find mesh: " + mesh_file)
         exit()
 
+    # Create the mesh here.
+    mesh = mesh(mesh_file, **NS_namespace)
+
     nodes_max, nodes_min, num_nodes, num_elems = get_mesh_properties(mesh_file)
     inlet_wall_coords = build_wall_coords(mesh_file)
 
@@ -340,7 +343,7 @@ def early_hook(mesh_file, folder, spark_puff, N, F, **NS_namespace):
 
     constrained_domain = PeriodicDomain(Lz)
 
-    return dict(mesh_file=mesh_file, folder=folder, Lz=Lz,
+    return dict(mesh=mesh, mesh_file=mesh_file, folder=folder, Lz=Lz,
                 inlet_wall_coords=inlet_wall_coords,
                 puff_center=puff_center,
                 puff_radius=puff_radius, puff_magnitude=puff_magnitude,
