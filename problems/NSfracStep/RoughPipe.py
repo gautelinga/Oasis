@@ -313,7 +313,7 @@ def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
     stats.toh5(1, tstep, filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
 
 
-def early_hook(mesh_file, folder, spark_puff, N, F, **NS_namespace):
+def early_hook(mesh, mesh_file, folder, spark_puff, N, F, **NS_namespace):
     """ Do stuff before anything else. """
     if N is not None and isinstance(N, int):
         mesh_file = "mesh/rough_pipe_N{}.h5".format(N)
