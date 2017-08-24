@@ -13,35 +13,28 @@ import numpy as np
 import random
 import itertools
 from common.ductutils import tabulate_inlet_wall_nodes, \
-   make_dof_coords, make_xdict, set_val, generate_puff_spark
+   make_dof_coords, make_xdict, set_val, generate_puff_spark, \
+   numpy_to_dolfin, get_mesh_properties, build_wall_coords
+import os
 
+
+# Some default values
 folder = "RoughPipe_results/"
 restart_folder = None
+mesh_file = "mesh/rough_pipe_N20.h5"
 
 comm = mpi4py.MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-start_from_scratch = True
-mesh_file = "mesh/rough_pipe_N20.h5"
-if path.isfile(mesh_file):
-    info_red("Mesh: " + mesh_file)
-else:
-    info_red("Couldn't find mesh.")
-    exit()
-
-
 # Kept for later...
-init_folder = folder + "data/1/Timeseries/"
-h5fu_str = init_folder + "u_from_tstep_0.h5"
-h5fp_str = init_folder + "p_from_tstep_0.h5"
-step = "45"  # which timestep within the timeseries do we initialize from?
+init_folder = None  # folder + "data/1/Timeseries/"
 
 # Viscosity
 nu = 9.e-6
 
 # Body force
-F_0 = 6e-6
+F = 6e-6
 
 # Timestep
 dt = 0.2
@@ -50,37 +43,8 @@ save_step = 150
 check_flux = 10  # 50
 
 
-def get_mesh_properties(mesh_file):
-    with h5py.File(mesh_file, "r") as h5f:
-        nodes = np.array(h5f["mesh/coordinates"])
-        elems = np.array(h5f["mesh/topology"])
-    return nodes.max(0), nodes.min(0), len(nodes), len(elems)
-
-
-def build_wall_coords(mesh_file):
-    with h5py.File(mesh_file, "r") as h5f:
-        nodes = np.array(h5f["mesh/coordinates"])
-        elems = np.array(h5f["mesh/topology"])
-    inlet_wall_coords = tabulate_inlet_wall_nodes(nodes, elems)
-    return inlet_wall_coords
-
-nodes_max, nodes_min, num_nodes, num_elems = get_mesh_properties(mesh_file)
-inlet_wall_coords = build_wall_coords(mesh_file)
-
-Lz = nodes_max[2]
-info_red("Some useful info")
-info("Number of nodes:    {}".format(num_nodes))
-info("Number of elements: {}".format(num_elems))
-info("Length of mesh:     {}".format(Lz))
-
-spark_puff = False
-puff_center = np.array([0., 0., Lz/2.])
-puff_radius = 0.4
-puff_magnitude = 0.4
-
-
 # Create a mesh here
-def mesh(**params):
+def mesh(mesh_file, **params):
     mesh = Mesh()
     h5fmesh = HDF5File(mesh.mpi_comm(), mesh_file, "r")
     h5fmesh.read(mesh, "/mesh", False)
@@ -89,16 +53,18 @@ def mesh(**params):
 
 
 class PeriodicDomain(SubDomain):
+    def __init__(self, Lz):
+        self.Lz = Lz
+        SubDomain.__init__(self)
+
     def inside(self, x, on_boundary):
         return bool(near(x[2], 0.) and on_boundary)
 
     def map(self, x, y):
         y[0] = x[0]
         y[1] = x[1]
-        y[2] = x[2] - Lz
+        y[2] = x[2] - self.Lz
 
-
-constrained_domain = PeriodicDomain()
 
 # If restarting from previous solution then read in parameters
 if restart_folder:
@@ -116,33 +82,39 @@ if restart_folder:
     globals().update(NS_parameters)
 else:
     # Override some problem specific parameters
-    NS_parameters.update(dict(
-        T=Nt * dt * save_step,
-        dt=dt,  # crank up? Usual: 0.2
-        nu=nu,
-        # Re = Re,
-        # Re_tau = Re_tau,
-        checkpoint=1000,
-        plot_interval=1,
-        save_step=save_step,
-        folder=folder,
-        max_iter=1,
-        velocity_degree=1,
-        use_krylov_solvers=True,
-        check_flux=check_flux,
-        update_statistics=10000,
-        save_statistics=10000
+    NS_parameters.update(
+        dict(
+           T=Nt * dt * save_step,
+           dt=dt,
+           nu=nu,
+           checkpoint=1000,
+           plot_interval=1,
+           save_step=save_step,
+           folder=folder,
+           max_iter=1,
+           velocity_degree=1,
+           use_krylov_solvers=True,
+           check_flux=check_flux,
+           update_statistics=10000,
+           save_statistics=10000,
+           mesh_file=mesh_file,
+           F=F,
+           init_folder=init_folder,
+           init_step=None,
+           spark_puff=False,
+           N=None,
+           u_target=0.0
+        )
     )
-    )
 
 
-def walls(x, on_boundary):
-    return on_boundary and (tuple(x[0:2]) in inlet_wall_coords or
-                            (x[2] > 0.0 and x[2] < Lz))
-
-
-def create_bcs(V, sys_comp, **NS_namespace):
+def create_bcs(V, sys_comp, inlet_wall_coords, Lz, **NS_namespace):
     bcs = dict((ui, []) for ui in sys_comp)
+
+    def walls(x, on_boundary):
+        return on_boundary and (tuple(x[0:2]) in inlet_wall_coords or
+                                (x[2] > 0.0 and x[2] < Lz))
+
     bc0  = DirichletBC(V, 0., walls)
     bcs['u0'] = [bc0]
     bcs['u1'] = [bc0]
@@ -163,30 +135,16 @@ class RandomStreamVector(Expression):
         return (3,)
 
 
-def body_force(**NS_namespace):
-    return Constant((0.0, 0.0, F_0))
+def body_force(F, **NS_namespace):
+    return Constant((0.0, 0.0, F))
 
 
-def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
+def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
+               spark_puff, puff_center, puff_magnitude, puff_radius, u_target,
+               **NS_namespace):
     """ Initialize from timeseries file """
-    if start_from_scratch:
-        # Initialize using a perturbed flow. Create random streamfunction
-        # info_red("Creating Vv")
-        # Vv = VectorFunctionSpace(V.mesh(), V.ufl_element().family(), V.ufl_element().degree())
-        # info_red("         psi")
-        # psi = interpolate(RandomStreamVector(), Vv)
-        # info_red("         u0")
-        # u0 = project(curl(psi), Vv)
-        # info_red("         u0x")
-        # # u0x = project(u0[0], V, bcs=bcs['u0'])
-        # u0x = interpolate_nonmatching_mesh(u0[0], V)
-        # info_red("         u0y")
-        # # u1x = project(u0[1], V, bcs=bcs['u0'])
-        # u1x = interpolate_nonmatching_mesh(u0[1], V)
-        # info_red("         u0z")
-        # # u2x = project(u0[2], V, bcs=bcs['u0'])
-        # u2x = interpolate_nonmatching_mesh(u0[2], V)
-
+    if init_folder is None and restart_folder is None:
+        # Start from scratch
         # initialize vectors at two timesteps
         q_1['u0'].vector()[:] = 0.  # u0x.vector()[:]
         q_1['u1'].vector()[:] = 0.  # u1x.vector()[:]
@@ -195,18 +153,37 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
         q_2['u1'].vector()[:] = q_1['u1'].vector()[:]
         q_2['u2'].vector()[:] = q_1['u2'].vector()[:]
     elif restart_folder is None:
-        S = FunctionSpace(V.mesh(),
-                          V.ufl_element().family(),
-                          V.ufl_element().degree())
+        h5fu_str = os.path.join(init_folder, "Timeseries/u_from_tstep_0.h5")
+        h5fp_str = os.path.join(init_folder, "Timeseries/p_from_tstep_0.h5")
+
+        for h5f_str in [h5fu_str, h5fp_str]:
+            if not os.path.exists(h5fu_str):
+                info_red("Could not find file: " + h5f_str)
+                exit()
 
         with h5py.File(h5fu_str, "r") as h5fu:
-            u_data = np.array(h5fu.get("VisualisationVector/"+step))
-            x_data = np.array(h5fu.get("Mesh/0/mesh/geometry"))
+            if init_step is not None and isinstance(init_step, int):
+                step_u = init_step
+            else:
+                step_u = str(max([int(step) for step
+                                  in h5fu["VisualisationVector"]]))
+            u_data = np.array(h5fu.get("VisualisationVector/" + step_u))
+            nodes = np.array(h5fu.get("Mesh/0/mesh/geometry"))
+            elems = np.array(h5fu.get("Mesh/0/mesh/topology"))
         with h5py.File(h5fp_str, "r") as h5fp:
-            p_data = np.array(h5fp.get("VisualisationVector/"+step))
+            if init_step is not None and isinstance(init_step, int):
+                step_p = init_step
+            else:
+                step_p = str(max([int(step) for step
+                                  in h5fp["VisualisationVector"]]))
+            p_data = np.array(h5fp.get("VisualisationVector/" + step_p))
+        assert(step_u == step_p)
+
+        other_mesh = numpy_to_dolfin(nodes, elems)
+        S = FunctionSpace(other_mesh, "CG", 1)
 
         x = make_dof_coords(S)
-        xdict = make_xdict(x_data)
+        xdict = make_xdict(nodes)
 
         u0x = Function(S)
         u0y = Function(S)
@@ -230,7 +207,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, **NS_namespace):
         if spark_puff:
             u_puff_x, u_puff_y, u_puff_z = generate_puff_spark(
                 puff_center, puff_radius, puff_magnitude, u_target,
-                x, x_data, xdict, S, V)
+                x, nodes, xdict, S, V)
             u0x.vector()[:] = u0x.vector()[:] + u_puff_x.vector()[:]
             u0y.vector()[:] = u0y.vector()[:] + u_puff_y.vector()[:]
             u0z.vector()[:] = u0z.vector()[:] + u_puff_z.vector()[:]
@@ -254,7 +231,7 @@ def inlet(x, on_boundary):
 
 
 def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
-                   mpi_comm_world, **NS_namespace):
+                   mpi_comm_world, Lz, **NS_namespace):
     """Called prior to time loop"""
     statsfolder = path.join(newfolder, "Stats")
     if MPI.rank(mpi_comm_world()) == 0:
@@ -293,6 +270,7 @@ def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
 def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                   newfolder, folder, check_flux, save_statistics, mesh,
                   facets, normal, check_if_reset_statistics, area, volume,
+                  Lz, nu,
                   **NS_namespace):
     # print timestep
     info_red("tstep = {}".format(tstep))       
@@ -310,22 +288,60 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
 
     if tstep % check_flux == 0:
         statsfolder = path.join(newfolder, "Stats")
-        u_axial = assemble(dot(u_, normal) *
+        u_axial = -assemble(dot(u_, normal) *
                            ds(1, domain=mesh, subdomain_data=facets))
         e_kin = assemble(dot(u_, u_) *
                          ds(1, domain=mesh, subdomain_data=facets))
         u_axial_vol = assemble(dot(u_, Constant((0., 0., 1.)))*dx(domain=mesh))
         e_kin_vol = assemble(dot(u_, u_)*dx(domain=mesh))
 
+        rad_avg = np.sqrt(volume/(Lz*np.pi))
+        u_axial_mean = u_axial_vol/volume
+        Re = u_axial_mean*2*rad_avg/nu
+
         if MPI.rank(mpi_comm_world()) == 0:
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
                 fluxfile.write(
-                   "%d %.8f %.8f %.8f %.8f %.8f %.8f %.8f \n" % (
+                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
                       tstep, t, u_axial, e_kin, area,
-                      u_axial_vol, e_kin_vol, volume))
+                      u_axial_vol, e_kin_vol, volume, Re))
 
 
-def theend(newfolder, tstep, stats, **NS_namespace):
+def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
     """Store statistics before exiting"""
     statsfolder = path.join(newfolder, "Stats")
     stats.toh5(1, tstep, filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
+
+
+def early_hook(mesh_file, folder, spark_puff, N, F, **NS_namespace):
+    """ Do stuff before anything else. """
+    if N is not None and isinstance(N, int):
+        mesh_file = "mesh/rough_pipe_N{}.h5".format(N)
+        folder = "RoughPipe_N{}_F{}_results/".format(N, F)
+
+    if path.isfile(mesh_file):
+        info_red("Mesh: " + mesh_file)
+    else:
+        info_red("Couldn't find mesh: " + mesh_file)
+        exit()
+
+    nodes_max, nodes_min, num_nodes, num_elems = get_mesh_properties(mesh_file)
+    inlet_wall_coords = build_wall_coords(mesh_file)
+
+    Lz = nodes_max[2]
+    info_red("Some useful info")
+    info("Number of nodes:    {}".format(num_nodes))
+    info("Number of elements: {}".format(num_elems))
+    info("Length of mesh:     {}".format(Lz))
+
+    puff_center = 0.5*(nodes_max+nodes_min)
+    puff_radius = 0.5*(nodes_max[0:2]-nodes_min[0:2]).min()
+    puff_magnitude = 0.4
+
+    constrained_domain = PeriodicDomain(Lz)
+
+    return dict(mesh_file=mesh_file, folder=folder, Lz=Lz,
+                inlet_wall_coords=inlet_wall_coords,
+                puff_center=puff_center,
+                puff_radius=puff_radius, puff_magnitude=puff_magnitude,
+                constrained_domain=constrained_domain)

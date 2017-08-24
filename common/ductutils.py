@@ -7,6 +7,9 @@ from fenicstools import interpolate_nonmatching_mesh
 from problems.NSfracStep import info_red, info_blue, info_green, \
     Function, norm, \
     VectorFunctionSpace, curl, as_vector, project
+import dolfin as df
+import h5py
+import os
 
 
 comm = COMM_WORLD
@@ -171,3 +174,51 @@ def generate_puff_spark(puff_center, puff_radius, puff_magnitude,
     u_puff_z = interpolate_nonmatching_mesh(u_puff.sub(2), V)
 
     return u_puff_x, u_puff_y, u_puff_z
+
+
+def remove_safe(path):
+    """ Remove file in a safe way. """
+    if rank == 0 and os.path.exists(path):
+        os.remove(path)
+
+
+def numpy_to_dolfin(nodes, elements):
+    """ Convert nodes and elements to a dolfin mesh object. """
+    tmpfile = "tmp.h5"
+    if rank == 0:
+        with h5py.File(tmpfile, "w") as h5f:
+            cell_indices = h5f.create_dataset(
+                "mesh/cell_indices", data=np.arange(len(elements)),
+                dtype='int64')
+            topology = h5f.create_dataset(
+                "mesh/topology", data=elements, dtype='int64')
+            coordinates = h5f.create_dataset(
+                "mesh/coordinates", data=nodes, dtype='float64')
+            topology.attrs["celltype"] = np.string_("tetrahedron")
+            topology.attrs["partition"] = np.array([0], dtype='uint64')
+
+    comm.Barrier()
+
+    mesh = df.Mesh()
+    h5f = df.HDF5File(mesh.mpi_comm(), tmpfile, "r")
+    h5f.read(mesh, "mesh", False)
+    h5f.close()
+
+    comm.Barrier()
+    remove_safe(tmpfile)
+    return mesh
+
+
+def get_mesh_properties(mesh_file):
+    with h5py.File(mesh_file, "r") as h5f:
+        nodes = np.array(h5f["mesh/coordinates"])
+        elems = np.array(h5f["mesh/topology"])
+    return nodes.max(0), nodes.min(0), len(nodes), len(elems)
+
+
+def build_wall_coords(mesh_file):
+    with h5py.File(mesh_file, "r") as h5f:
+        nodes = np.array(h5f["mesh/coordinates"])
+        elems = np.array(h5f["mesh/topology"])
+    inlet_wall_coords = tabulate_inlet_wall_nodes(nodes, elems)
+    return inlet_wall_coords

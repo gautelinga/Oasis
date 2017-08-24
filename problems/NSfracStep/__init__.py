@@ -95,3 +95,7 @@ def start_timestep_hook(**NS_namespace):
 def temporal_hook(**NS_namespace):
     """Called at end of a timestep."""
     pass
+
+def early_hook(**NS_namespace):
+    """ Called early on. """
+    return dict()

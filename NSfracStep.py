@@ -39,6 +39,9 @@ exec("from problems.NSfracStep.{} import *".format(commandline_kwargs.get('probl
 # Update current namespace with NS_parameters and commandline_kwargs ++
 vars().update(post_import_problem(**vars()))
 
+# An early hook
+vars().update(early_hook(**vars()))
+
 # Import chosen functionality from solvers
 exec("from solvers.NSfracStep.{} import *".format(solver))
 
