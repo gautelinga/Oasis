@@ -292,7 +292,7 @@ def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
 
 def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                   newfolder, folder, check_flux, save_statistics, mesh,
-                  facets, normal, check_if_reset_statistics, area,
+                  facets, normal, check_if_reset_statistics, area, volume,
                   **NS_namespace):
     # print timestep
     info_red("tstep = {}".format(tstep))       
