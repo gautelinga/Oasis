@@ -74,6 +74,10 @@ def info_red(s, check=True):
     if MPI.rank(mpi_comm_world())==0 and check:
         print RED % s
 
+def info(s, check=True):
+    if MPI.rank(mpi_comm_world())==0 and check:
+        print s
+
 class OasisTimer(Timer):
     def __init__(self, task, verbose=False):
         Timer.__init__(self, task)
