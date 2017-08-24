@@ -126,7 +126,7 @@ else:
         plot_interval=1,
         save_step=save_step,
         folder=folder,
-        max_iter=10,
+        max_iter=1,
         velocity_degree=1,
         use_krylov_solvers=True,
         check_flux=check_flux,
