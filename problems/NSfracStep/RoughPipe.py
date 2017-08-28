@@ -40,7 +40,7 @@ F = 6e-6
 dt = 0.2
 Nt = 500
 save_step = 150
-check_flux = 10  # 50
+check_flux = 50  # 50
 
 
 # Create a mesh here
