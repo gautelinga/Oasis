@@ -17,7 +17,7 @@ NS_parameters.update(
   AB_projection_pressure = False,  # Use Adams Bashforth projection as first estimate for pressure on new timestep
   solver = "IPCS_ABCN",  # "IPCS_ABCN", "IPCS_ABE", "IPCS", "Chorin", "BDFPC", "BDFPC_Fast"
   
-  # Parameters used to tweek solver  
+  # Parameters used to tweak solver  
   max_iter = 1,          # Number of inner pressure velocity iterations on timestep
   max_error = 1e-6,      # Tolerance for inner iterations (pressure velocity iterations)
   iters_on_first_timestep = 2, # Number of iterations on first timestep

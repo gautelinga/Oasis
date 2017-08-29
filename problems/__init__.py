@@ -74,6 +74,10 @@ def info_red(s, check=True):
     if MPI.rank(mpi_comm_world())==0 and check:
         print RED % s
 
+def info(s, check=True):
+    if MPI.rank(mpi_comm_world())==0 and check:
+        print s
+
 class OasisTimer(Timer):
     def __init__(self, task, verbose=False):
         Timer.__init__(self, task)
@@ -171,13 +175,16 @@ def post_import_problem(NS_parameters, mesh, commandline_kwargs,
         else:
             NS_parameters[key] = val
 
+    # Returned dictionary to be updated in the NS namespace
+    d = dict()
+    d.update(NS_parameters)
+    return d
+
+def early_hook(mesh, **NS_namespace):
+    """ Called early on. """
     # If the mesh is a callable function, then create the mesh here.
     if callable(mesh):
         mesh = mesh(**NS_parameters)
-
-    assert(isinstance(mesh, Mesh)) 
-    
-    # Returned dictionary to be updated in the NS namespace
+    assert(isinstance(mesh, Mesh))
     d = dict(mesh=mesh)
-    d.update(NS_parameters)
     return d

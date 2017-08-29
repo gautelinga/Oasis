@@ -13,7 +13,12 @@ import random
 import itertools
 from common.ductutils import *
 
-folder = "RoughChannel_results"
+folder = "RoughChannel_A2e-1_results"
+# folder = "SmoothChannel_results"
+# folder = "RoughChannel_A1e-1_results"
+# folder = "RoughChannel_A1_results"
+# folder = "RoughChannel_A8e-1_results"
+# folder = "RoughChannel_results"
 # restart_folder = folder + "/data/4/Checkpoint"
 restart_folder = None
 
@@ -26,7 +31,12 @@ size = comm.Get_size()
 # Mads implemented.
 
 start_from_scratch = False
-mesh_file = "mesh/rough_channel_H8e-1_10x10x1_2.h5"
+mesh_file = "mesh/rough_channel_H8e-1_A2e-1_10x10x1.h5"
+# mesh_file = "mesh/rough_channel_H8e-1_A1e-1_10x10x1.h5"
+# mesh_file = "mesh/smooth_channel_10x10x1.h5"
+# mesh_file = "mesh/rough_channel_H8e-1_A1_10x10x1.h5"
+# mesh_file = "mesh/rough_channel_H8e-1_A8e-1_10x10x1.h5"
+# mesh_file = "mesh/rough_channel_H8e-1_10x10x1_2.h5"
 if path.isfile(mesh_file):
     info_red("Mesh: " + mesh_file)
 else:
@@ -34,18 +44,28 @@ else:
 
 # Kept for later...
 # init_folder = "RoughChannel_results/data/2/Timeseries/"
-init_folder = "init_states/rough_channel_H8e-1_10x10x1_2/Re860/"
+# init_folder = "init_states/rough_channel_H8e-1_10x10x1_2/Re860/"
+# init_folder = "SmoothChannel_results/data/1/Timeseries/"
+init_folder = folder + "/data/2/Timeseries/"
 h5fu_str = init_folder + "u_from_tstep_0.h5"
 h5fp_str = init_folder + "p_from_tstep_0.h5"
 
-step = "0"  # which timestep within the timeseries do we initialize from?
+step = "55"  # which timestep within the timeseries do we initialize from?
 
 # Viscosity
 nu = 9.e-6
 
 # Body force
+# F_0 = 1e-8
+# F_0 = 3.75e-8
+# F_0 = 1e-7  # Re=42
+# F_0 = 3.75e-7  # Re=125
+# F_0 = 7.5e-7  # Re=195 # Smooth
+# F_0 = 1.5e-6  # Re=290
+# F_0 = 3e-6  # Re=420
 # F_0 = 6e-6  # Re=600
-F_0 = 1.2e-5
+F_0 = 1.2e-5  # Re=860
+# F_0 = 2.4e-5
 
 # Dimensions
 Lx = 10.
@@ -105,7 +125,7 @@ if restart_folder:
     restart_folder = path.join(getcwd(), restart_folder)
     f = open(path.join(restart_folder, 'params.dat'), 'r')
     NS_parameters.update(cPickle.load(f))
-    NS_parameters['dt'] = 0.2
+    NS_parameters['dt'] = 0.2 * 2
     NS_parameters['checkpoint'] = 1000
     NS_parameters['save_step'] = 150
     NS_parameters['T'] += 500 * NS_parameters['save_step'] * NS_parameters['dt']
@@ -117,8 +137,8 @@ if restart_folder:
 else:
     # Override some problem specific parameters
     NS_parameters.update(dict(
-        T=500.0 * 0.2 * 300,
-        dt=0.2,  # crank up? Usual: 0.2
+        T=500.0 * 0.2 * 10 * 300,
+        dt=0.2 * 2,  # crank up? Usual: 0.2
         nu=nu,
         # Re = Re,
         # Re_tau = Re_tau,
