@@ -29,9 +29,9 @@ def split(string):
     return string[:i], float(string[i:])
 
 
-def parse_info(stats_path, servers):
+def parse_info(stats_path, servers, default="this"):
     folder_name = stats_path.split("data")[0][:-1].split("/")[-1]
-    server = get_server(stats_path.split(folder_name)[0], servers)
+    server = get_server(stats_path.split(folder_name)[0], servers, default)
     info_arr = folder_name.split("_")
     info_arr.remove("results")
     info = dict(
