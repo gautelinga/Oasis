@@ -103,7 +103,8 @@ else:
            init_step=None,
            spark_puff=False,
            N=None,
-           u_target=0.0
+           u_target=0.0,
+           fine_mesh=True
         )
     )
 
@@ -205,12 +206,40 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
         p0 = interpolate_nonmatching_mesh(p0, V)
 
         if spark_puff:
-            u_puff_x, u_puff_y, u_puff_z = generate_puff_spark(
-                puff_center, puff_radius, puff_magnitude, u_target,
-                x, nodes, xdict, S, V)
-            u0x.vector()[:] = u0x.vector()[:] + u_puff_x.vector()[:]
-            u0y.vector()[:] = u0y.vector()[:] + u_puff_y.vector()[:]
-            u0z.vector()[:] = u0z.vector()[:] + u_puff_z.vector()[:]
+            #u_puff_x, u_puff_y, u_puff_z = generate_puff_spark(
+            #    puff_center, puff_radius, puff_magnitude, u_target,
+            #    x, nodes, xdict, S, V)
+
+            u0z_mean = (assemble(u0z*dx(domain=mesh))/
+                        assemble(df.Constant(1.)*dx(domain=mesh)))
+
+            with h5py.File("puff/puff.h5", "r") as h5f:
+                u_data_puff = np.array(h5f.get("VisualisationVector/0"))
+                nodes_puff = np.array(h5f.get("Mesh/0/mesh/geometry"))
+                elems_puff = np.array(h5f.get("Mesh/0/mesh/topology"))
+
+            u_data_puff = puff_magnitude*u_data_puff*u0z_mean
+            nodes_puff = nodes_puff*puff_radius/0.5
+            nodes_puff[:, 0] += puff_center[0]
+            nodes_puff[:, 1] += puff_center[1]
+            nodes_puff[:, 2] += puff_center[2]
+
+            mesh_puff = numpy_to_dolfin(nodes_puff, elems_puff)
+            S_puff = FunctionSpace(mesh_puff, "CG", 1)
+            x_puff = make_dof_coords(S_puff)
+            xdict_puff = make_xdict(nodes_puff)
+
+            u_x_puff = Function(S_puff)
+            u_y_puff = Function(S_puff)
+            u_z_puff = Function(S_puff)
+
+            set_val(u_x_puff, u_data_puff[:, 0], x_puff, xdict_puff)
+            set_val(u_y_puff, u_data_puff[:, 1], x_puff, xdict_puff)
+            set_val(u_z_puff, u_data_puff[:, 2], x_puff, xdict_puff)
+
+            u0x.vector()[:] = u0x.vector()[:] + u_x_puff.vector()[:]
+            u0y.vector()[:] = u0y.vector()[:] + u_y_puff.vector()[:]
+            u0z.vector()[:] = u0z.vector()[:] + u_z_puff.vector()[:]
 
         # initialize vectors at two timesteps
         q_['u0'].vector()[:] = u0x.vector()[:]
@@ -313,10 +342,13 @@ def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
     stats.toh5(1, tstep, filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
 
 
-def early_hook(mesh, mesh_file, folder, spark_puff, N, F, **NS_namespace):
+def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
+               fine_mesh,
+               **NS_namespace):
     """ Do stuff before anything else. """
     if N is not None and isinstance(N, int):
-        mesh_file = "mesh/rough_pipe_N{}.h5".format(N)
+        mesh_file = "mesh/rough_pipe_N{}{}.h5".format(
+            N, "_fine" if fine_mesh else "")
         folder = "RoughPipe_N{}_F{}_results/".format(N, F)
 
     if path.isfile(mesh_file):
@@ -339,7 +371,7 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F, **NS_namespace):
 
     puff_center = 0.5*(nodes_max+nodes_min)
     puff_radius = 0.5*(nodes_max[0:2]-nodes_min[0:2]).min()
-    puff_magnitude = 0.4
+    puff_magnitude = 1.
 
     constrained_domain = PeriodicDomain(Lz)
 
