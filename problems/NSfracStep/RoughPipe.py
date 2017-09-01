@@ -210,8 +210,12 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             #    puff_center, puff_radius, puff_magnitude, u_target,
             #    x, nodes, xdict, S, V)
 
+            info_green("Making puff!")
+
             u0z_mean = (assemble(u0z*dx(domain=mesh))/
                         assemble(df.Constant(1.)*dx(domain=mesh)))
+
+            info_green("Mean velocity: {}".format(u0z_mean))
 
             with h5py.File("puff/puff.h5", "r") as h5f:
                 u_data_puff = np.array(h5f.get("VisualisationVector/0"))
@@ -237,9 +241,16 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             set_val(u_y_puff, u_data_puff[:, 1], x_puff, xdict_puff)
             set_val(u_z_puff, u_data_puff[:, 2], x_puff, xdict_puff)
 
-            u0x.vector()[:] = u0x.vector()[:] + u_x_puff.vector()[:]
-            u0y.vector()[:] = u0y.vector()[:] + u_y_puff.vector()[:]
-            u0z.vector()[:] = u0z.vector()[:] + u_z_puff.vector()[:]
+            info_green("Projecting u0x_puff...")
+            u0x_puff = interpolate_nonmatching_mesh(u0x, V)
+            info_green("Projecting u0y_puff...")
+            u0y_puff = interpolate_nonmatching_mesh(u0y, V)
+            info_green("Projecting u0z_puff...")
+            u0z_puff = interpolate_nonmatching_mesh(u0z, V)
+
+            u0x.vector()[:] = u0x.vector()[:] + u0x_puff.vector()[:]
+            u0y.vector()[:] = u0y.vector()[:] + u0y_puff.vector()[:]
+            u0z.vector()[:] = u0z.vector()[:] + u0z_puff.vector()[:]
 
         # initialize vectors at two timesteps
         q_['u0'].vector()[:] = u0x.vector()[:]
