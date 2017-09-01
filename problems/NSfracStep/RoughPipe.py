@@ -204,6 +204,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
         u0z = interpolate_nonmatching_mesh(u0z, V)
         info_green("Projecting p0...")
         p0 = interpolate_nonmatching_mesh(p0, V)
+        info_green("Done with projecting (for now).")
 
         if spark_puff:
             #u_puff_x, u_puff_y, u_puff_z = generate_puff_spark(
