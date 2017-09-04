@@ -142,6 +142,7 @@ def body_force(F, **NS_namespace):
 
 def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
                spark_puff, puff_center, puff_magnitude, puff_radius, u_target,
+               mesh,
                **NS_namespace):
     """ Initialize from timeseries file """
     if init_folder is None and restart_folder is None:
