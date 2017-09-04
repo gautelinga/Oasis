@@ -215,7 +215,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             info_green("Making puff!")
 
             u0z_mean = (assemble(u0z*dx(domain=mesh))/
-                        assemble(df.Constant(1.)*dx(domain=mesh)))
+                        assemble(Constant(1.)*dx(domain=mesh)))
 
             info_green("Mean velocity: {}".format(u0z_mean))
 
@@ -224,12 +224,18 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
                 nodes_puff = np.array(h5f.get("Mesh/0/mesh/geometry"))
                 elems_puff = np.array(h5f.get("Mesh/0/mesh/topology"))
 
+            info_green("The puff velocity is scaled by a factor {}.".format(
+                puff_magnitude))
+            info_green(("The puff radius is set to {} and the puff is"
+                        " shifted by ({}, {}, {}).").format(
+                            puff_radius, puff_center[0], puff_center[1], puff_center[2]))
             u_data_puff = puff_magnitude*u_data_puff*u0z_mean
             nodes_puff = nodes_puff*puff_radius/0.5
             nodes_puff[:, 0] += puff_center[0]
             nodes_puff[:, 1] += puff_center[1]
             nodes_puff[:, 2] += puff_center[2]
 
+            info_green("Recreating the puff mesh...")
             mesh_puff = numpy_to_dolfin(nodes_puff, elems_puff)
             S_puff = FunctionSpace(mesh_puff, "CG", 1)
             x_puff = make_dof_coords(S_puff)
@@ -239,6 +245,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             u_y_puff = Function(S_puff)
             u_z_puff = Function(S_puff)
 
+            info_green("Setting puff values...")
             set_val(u_x_puff, u_data_puff[:, 0], x_puff, xdict_puff)
             set_val(u_y_puff, u_data_puff[:, 1], x_puff, xdict_puff)
             set_val(u_z_puff, u_data_puff[:, 2], x_puff, xdict_puff)
