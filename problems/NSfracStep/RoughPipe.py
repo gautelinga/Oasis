@@ -105,7 +105,8 @@ else:
             spark_puff=False,
             N=None,
             u_target=0.0,
-            fine_mesh=True
+            fine_mesh=True,
+            puff_magnitude=2.
         )
     )
 
@@ -393,12 +394,10 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
 
     puff_center = 0.5*(nodes_max+nodes_min)
     puff_radius = 0.5*(nodes_max[0:2]-nodes_min[0:2]).min()
-    puff_magnitude = 1.
 
     constrained_domain = PeriodicDomain(Lz)
 
     return dict(mesh=mesh, mesh_file=mesh_file, folder=folder, Lz=Lz,
                 inlet_wall_coords=inlet_wall_coords,
-                puff_center=puff_center,
-                puff_radius=puff_radius, puff_magnitude=puff_magnitude,
+                puff_center=puff_center, puff_radius=puff_radius,
                 constrained_domain=constrained_domain)
