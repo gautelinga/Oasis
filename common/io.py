@@ -64,16 +64,16 @@ def save_solution(tstep, t, q_, q_1, folder, newfolder, save_step, checkpoint,
                   AssignedVectorFunction, **NS_namespace):
     """Called at end of timestep. Check for kill and save solution if required."""
     NS_parameters.update(t=t, tstep=tstep)
-    if tstep % save_step == 0: 
+    if tstep % save_step == 0:
         save_tstep_solution_h5(tstep, q_, u_, newfolder, tstepfiles, constrained_domain,
                                output_timeseries_as_vector, u_components, AssignedVectorFunction,
                                scalar_components, NS_parameters)
-        
+
     killoasis = check_if_kill(folder)
     if tstep % checkpoint == 0 or killoasis:
         save_checkpoint_solution_h5(tstep, q_, q_1, newfolder, u_components, 
                                     NS_parameters)
-        
+
     return killoasis
 
 def save_tstep_solution_h5(tstep, q_, u_, newfolder, tstepfiles, constrained_domain,

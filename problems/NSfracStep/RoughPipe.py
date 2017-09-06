@@ -84,27 +84,28 @@ else:
     # Override some problem specific parameters
     NS_parameters.update(
         dict(
-           T=Nt * dt * save_step,
-           dt=dt,
-           nu=nu,
-           checkpoint=1000,
-           plot_interval=1,
-           save_step=save_step,
-           folder=folder,
-           max_iter=1,
-           velocity_degree=1,
-           use_krylov_solvers=True,
-           check_flux=check_flux,
-           update_statistics=10000,
-           save_statistics=10000,
-           mesh_file=mesh_file,
-           F=F,
-           init_folder=init_folder,
-           init_step=None,
-           spark_puff=False,
-           N=None,
-           u_target=0.0,
-           fine_mesh=True
+            T=Nt * dt * save_step,
+            tstep=-1,
+            dt=dt,
+            nu=nu,
+            checkpoint=1000,
+            plot_interval=1,
+            save_step=save_step,
+            folder=folder,
+            max_iter=1,
+            velocity_degree=1,
+            use_krylov_solvers=True,
+            check_flux=check_flux,
+            update_statistics=10000,
+            save_statistics=10000,
+            mesh_file=mesh_file,
+            F=F,
+            init_folder=init_folder,
+            init_step=None,
+            spark_puff=False,
+            N=None,
+            u_target=0.0,
+            fine_mesh=True
         )
     )
 
@@ -228,7 +229,8 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
                 puff_magnitude))
             info_green(("The puff radius is set to {} and the puff is"
                         " shifted by ({}, {}, {}).").format(
-                            puff_radius, puff_center[0], puff_center[1], puff_center[2]))
+                            puff_radius, puff_center[0],
+                            puff_center[1], puff_center[2]))
             u_data_puff = puff_magnitude*u_data_puff*u0z_mean
             nodes_puff = nodes_puff*puff_radius/0.5
             nodes_puff[:, 0] += puff_center[0]
@@ -251,11 +253,11 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             set_val(u_z_puff, u_data_puff[:, 2], x_puff, xdict_puff)
 
             info_green("Projecting u0x_puff...")
-            u0x_puff = interpolate_nonmatching_mesh(u0x, V)
+            u0x_puff = interpolate_nonmatching_mesh(u_x_puff, V)
             info_green("Projecting u0y_puff...")
-            u0y_puff = interpolate_nonmatching_mesh(u0y, V)
+            u0y_puff = interpolate_nonmatching_mesh(u_y_puff, V)
             info_green("Projecting u0z_puff...")
-            u0z_puff = interpolate_nonmatching_mesh(u0z, V)
+            u0z_puff = interpolate_nonmatching_mesh(u_z_puff, V)
 
             u0x.vector()[:] = u0x.vector()[:] + u0x_puff.vector()[:]
             u0y.vector()[:] = u0y.vector()[:] + u0y_puff.vector()[:]
