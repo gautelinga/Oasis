@@ -85,7 +85,7 @@ else:
     NS_parameters.update(
         dict(
             T=Nt * dt * save_step,
-            tstep=-1,
+            tstep=0,
             dt=dt,
             nu=nu,
             checkpoint=1000,
