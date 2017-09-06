@@ -16,6 +16,7 @@ from common.ductutils import tabulate_inlet_wall_nodes, \
    make_dof_coords, make_xdict, set_val, generate_puff_spark, \
    numpy_to_dolfin, get_mesh_properties, build_wall_coords
 import os
+import glob
 
 
 # Some default values
@@ -85,7 +86,7 @@ else:
     NS_parameters.update(
         dict(
             T=Nt * dt * save_step,
-            tstep=0,
+            tstep=-1,
             dt=dt,
             nu=nu,
             checkpoint=1000,
@@ -157,8 +158,15 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
         q_2['u1'].vector()[:] = q_1['u1'].vector()[:]
         q_2['u2'].vector()[:] = q_1['u2'].vector()[:]
     elif restart_folder is None:
-        h5fu_str = os.path.join(init_folder, "Timeseries/u_from_tstep_0.h5")
-        h5fp_str = os.path.join(init_folder, "Timeseries/p_from_tstep_0.h5")
+        init_tstep = max([int(os.path.basename(string)[13:-3])
+                          for string in glob.glob(
+                                  os.path.join(init_folder,
+                                               "Timeseries/u_from_tstep_*.h5"))])
+
+        h5fu_str = os.path.join(init_folder,
+                                "Timeseries/u_from_tstep_{}.h5".format(init_tstep))
+        h5fp_str = os.path.join(init_folder,
+                                "Timeseries/p_from_tstep_{}.h5".format(init_tstep))
 
         for h5f_str in [h5fu_str, h5fp_str]:
             if not os.path.exists(h5fu_str):
