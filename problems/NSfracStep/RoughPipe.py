@@ -348,10 +348,13 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                             ds(1, domain=mesh, subdomain_data=facets))
         e_kin = 0.5*assemble(dot(u_, u_) *
                              ds(1, domain=mesh, subdomain_data=facets))
-        u_axial_vol = assemble(u_.sub(2)*dx(domain=mesh))
+
+        u_z = dot(u_, Constant((0., 0., 1.)))
+        u_n = u_ - u_z
+
+        u_axial_vol = assemble(u_z*dx(domain=mesh))
         e_kin_vol = 0.5*assemble(dot(u_, u_)*dx(domain=mesh))
-        u_normal_vol = np.sqrt(assemble((u_.sub(0)**2 +
-                                         u_.sub(1)**2)*dx(domain=mesh)))
+        u_normal_vol = np.sqrt(assemble(dot(u_n, u_n)*dx(domain=mesh)))
 
         rad_avg = np.sqrt(volume/(Lz*np.pi))
         u_axial_mean = u_axial_vol/volume
