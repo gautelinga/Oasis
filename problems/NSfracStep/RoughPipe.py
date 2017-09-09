@@ -349,8 +349,9 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
         e_kin = 0.5*assemble(dot(u_, u_) *
                              ds(1, domain=mesh, subdomain_data=facets))
 
-        u_z = dot(u_, Constant((0., 0., 1.)))
-        u_n = u_ - u_z
+        n_z = Constant((0., 0., 1.))
+        u_z = dot(u_, n_z)
+        u_n = u_ - u_z*n_z
 
         u_axial_vol = assemble(u_z*dx(domain=mesh))
         e_kin_vol = 0.5*assemble(dot(u_, u_)*dx(domain=mesh))
