@@ -105,7 +105,7 @@ else:
             init_step=None,
             spark_puff=False,
             N=None,
-            u_target=0.0,
+            scale=1.0,
             fine_mesh=True,
             puff_magnitude=2.
         )
@@ -144,7 +144,7 @@ def body_force(F, **NS_namespace):
 
 
 def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
-               spark_puff, puff_center, puff_magnitude, puff_radius, u_target,
+               spark_puff, puff_center, puff_magnitude, puff_radius, scale,
                mesh,
                **NS_namespace):
     """ Initialize from timeseries file """
@@ -179,7 +179,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             else:
                 step_u = str(max([int(step) for step
                                   in h5fu["VisualisationVector"]]))
-            u_data = np.array(h5fu.get("VisualisationVector/" + step_u))
+            u_data = scale*np.array(h5fu.get("VisualisationVector/" + step_u))
             nodes = np.array(h5fu.get("Mesh/0/mesh/geometry"))
             elems = np.array(h5fu.get("Mesh/0/mesh/topology"))
         with h5py.File(h5fp_str, "r") as h5fp:
@@ -188,7 +188,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             else:
                 step_p = str(max([int(step) for step
                                   in h5fp["VisualisationVector"]]))
-            p_data = np.array(h5fp.get("VisualisationVector/" + step_p))
+            p_data = scale*np.array(h5fp.get("VisualisationVector/" + step_p))
         assert(step_u == step_p)
 
         other_mesh = numpy_to_dolfin(nodes, elems)
@@ -218,10 +218,6 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
         info_green("Done with projecting (for now).")
 
         if spark_puff:
-            #u_puff_x, u_puff_y, u_puff_z = generate_puff_spark(
-            #    puff_center, puff_radius, puff_magnitude, u_target,
-            #    x, nodes, xdict, S, V)
-
             info_green("Making puff!")
 
             u0z_mean = (assemble(u0z*dx(domain=mesh))/
