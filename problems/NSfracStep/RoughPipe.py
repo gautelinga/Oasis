@@ -345,22 +345,26 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
     if tstep % check_flux == 0:
         statsfolder = path.join(newfolder, "Stats")
         u_axial = -assemble(dot(u_, normal) *
-                           ds(1, domain=mesh, subdomain_data=facets))
-        e_kin = assemble(dot(u_, u_) *
-                         ds(1, domain=mesh, subdomain_data=facets))
-        u_axial_vol = assemble(dot(u_, Constant((0., 0., 1.)))*dx(domain=mesh))
-        e_kin_vol = assemble(dot(u_, u_)*dx(domain=mesh))
+                            ds(1, domain=mesh, subdomain_data=facets))
+        e_kin = 0.5*assemble(dot(u_, u_) *
+                             ds(1, domain=mesh, subdomain_data=facets))
+        u_axial_vol = assemble(u_.sub(2)*dx(domain=mesh))
+        e_kin_vol = 0.5*assemble(dot(u_, u_)*dx(domain=mesh))
+        u_normal_vol = np.sqrt(assemble((u_.sub(0)**2 +
+                                         u_.sub(1)**2)*dx(domain=mesh)))
 
         rad_avg = np.sqrt(volume/(Lz*np.pi))
         u_axial_mean = u_axial_vol/volume
         Re = u_axial_mean*2*rad_avg/nu
 
+        turb = u_normal_vol/u_axial_vol
+
         if MPI.rank(mpi_comm_world()) == 0:
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
                 fluxfile.write(
-                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
+                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
                       tstep, t, u_axial, e_kin, area,
-                      u_axial_vol, e_kin_vol, volume, Re))
+                       u_axial_vol, e_kin_vol, volume, Re, turb))
 
 
 def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
