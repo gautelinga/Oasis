@@ -96,7 +96,12 @@ for basedir in basedirs:
                             sims.append((stats_path, t_mod))
 
 for stats_path, t_mod in sims:
+    print "Loading:", stats_path
+    if "mount_" in stats_path:
+        continue
     data = np.loadtxt(stats_path)
+    if data.ndim == 1:
+        data = np.array([data])
     info = parse_info(stats_path, servers, default=thishost)
     # print info, data.shape
     t = data[:, 1]
