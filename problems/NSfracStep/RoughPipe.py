@@ -28,9 +28,6 @@ comm = mpi4py.MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-# Kept for later...
-init_folder = None  # folder + "data/1/Timeseries/"
-
 # Viscosity
 nu = 9.e-6
 
@@ -101,12 +98,12 @@ else:
             save_statistics=10000,
             mesh_file=mesh_file,
             F=F,
-            init_folder=init_folder,
+            init_folder=None,
             init_step=None,
             spark_puff=False,
             N=None,
             scale=1.0,
-            fine_mesh=True,
+            mesh_suffix="fine",
             puff_magnitude=2.
         )
     )
@@ -119,7 +116,7 @@ def create_bcs(V, sys_comp, inlet_wall_coords, Lz, **NS_namespace):
         return on_boundary and (tuple(x[0:2]) in inlet_wall_coords or
                                 (x[2] > 0.0 and x[2] < Lz))
 
-    bc0  = DirichletBC(V, 0., walls)
+    bc0 = DirichletBC(V, 0., walls)
     bcs['u0'] = [bc0]
     bcs['u1'] = [bc0]
     bcs['u2'] = [bc0]
@@ -378,12 +375,13 @@ def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
 
 
 def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
-               fine_mesh,
+               mesh_suffix,
                **NS_namespace):
     """ Do stuff before anything else. """
     if N is not None and isinstance(N, int):
         mesh_file = "mesh/rough_pipe_N{}{}.h5".format(
-            N, "_fine" if fine_mesh else "")
+            N, "_" + mesh_suffix if bool(isinstance(mesh_suffix, str)
+                                         and mesh_suffix is not "") else "")
         folder = "RoughPipe_N{}_F{}_results/".format(N, F)
 
     if path.isfile(mesh_file):
