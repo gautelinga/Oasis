@@ -172,7 +172,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
 
         with h5py.File(h5fu_str, "r") as h5fu:
             if init_step is not None and isinstance(init_step, int):
-                step_u = init_step
+                step_u = str(init_step)
             else:
                 step_u = str(max([int(step) for step
                                   in h5fu["VisualisationVector"]]))
@@ -181,7 +181,7 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             elems = np.array(h5fu.get("Mesh/0/mesh/topology"))
         with h5py.File(h5fp_str, "r") as h5fp:
             if init_step is not None and isinstance(init_step, int):
-                step_p = init_step
+                step_p = str(init_step)
             else:
                 step_p = str(max([int(step) for step
                                   in h5fp["VisualisationVector"]]))

@@ -194,7 +194,7 @@ def probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict):
 
 
 class Snapshot:
-    def __init__(self, filename, elems, nodes):
+    def __init__(self, filename, elems, nodes, nodes_cyl):
         self.filename = filename
         self.elems = elems
         self.nodes = nodes
@@ -208,6 +208,8 @@ class Snapshot:
 
             self.h5f.create_dataset("Mesh/elements", data=elems)
             self.h5f.create_dataset("Mesh/coordinates", data=nodes)
+            self.h5f.create_dataset("Mesh/cylinder_coordinates",
+                                    data=nodes_cyl)
 
             self.xdmf_str = """<?xml version="1.0"?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
@@ -341,7 +343,7 @@ if __name__ == "__main__":
             os.makedirs(interpolated_folder)
 
     snapshot_filename = os.path.join(interpolated_folder, "snapshot")
-    snapshot = Snapshot(snapshot_filename, elems_cyl, pts_xyz)
+    snapshot = Snapshot(snapshot_filename, elems_cyl, pts_xyz, pts_cyl)
 
     probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict)
 
