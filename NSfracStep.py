@@ -154,6 +154,12 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
         t0 = OasisTimer("Tentative velocity")
         if inner_iter == 1:
             les_update(**vars())
+
+            if control == "Re" and tstep % check_flux == 1:
+                f = body_force(**vars())
+                for i, ui in enumerate(u_components):
+                    b0[ui] = assemble(v*f[i]*dx)
+
             assemble_first_inner_iter(**vars())
         udiff[0] = 0.0
         for i, ui in enumerate(u_components):
@@ -162,20 +168,20 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
             velocity_tentative_hook    (**vars())
             velocity_tentative_solve   (**vars())
             t1.stop()
-            
+
         t0 = OasisTimer("Pressure solve", print_solve_info)
         pressure_assemble(**vars())
         pressure_hook    (**vars())
         pressure_solve   (**vars())
         t0.stop()
-                             
+
         print_velocity_pressure_info(**vars())
 
     # Update velocity 
     t0 = OasisTimer("Velocity update")
     velocity_update(**vars())
     t0.stop()
-    
+
     # Solve for scalars
     if len(scalar_components) > 0:
         scalar_assemble(**vars())
@@ -184,7 +190,7 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
             scalar_hook (**vars())
             scalar_solve(**vars())
             t1.stop()
-        
+
     temporal_hook(**vars())
     
     # Save solution if required and check for killoasis file
@@ -194,7 +200,7 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
     for ui in u_components:
         x_2[ui].zero(); x_2[ui].axpy(1.0, x_1[ui])
         x_1[ui].zero(); x_1[ui].axpy(1.0, x_ [ui])
-                
+
     for ci in scalar_components:
         x_1[ci].zero(); x_1[ci].axpy(1., x_[ci])
 

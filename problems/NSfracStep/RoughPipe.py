@@ -390,7 +390,7 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                        u_axial_vol, e_kin_vol, volume, Re, turb, F))
 
 
-    return dict(F=F, u_err=u_err)
+    return dict(F=F, u_err=u_err, u_err_integral=u_err_integral)
 
 
 def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):

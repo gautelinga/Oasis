@@ -23,7 +23,8 @@ def get_args():
     parser.add_argument("-Nz", type=int, default=200, help="Nz")
     parser.add_argument("-Nr", type=int, default=32, help="Nr")
     parser.add_argument("-Ntheta", type=int, default=64, help="Ntheta")
-    parser.add_argument("-s", "--steps", type=str, default="-1", help="Timesteps to get")
+    parser.add_argument("-s", "--steps", type=str, default="-1",
+                        help="Timesteps to get")
     args = parser.parse_args()
     return args
 
