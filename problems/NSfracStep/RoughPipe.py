@@ -109,9 +109,9 @@ else:
             puff_magnitude=2.,
             control="Re",
             Re_target=2000.,
-            Kp=100.*kreg,
-            Ki=200.*kreg**2,
-            Kd=0.005
+            Kp=200.*kreg,
+            Ki=0.*200.*kreg**2,
+            Kd=0.*0.0005
         )
     )
 
