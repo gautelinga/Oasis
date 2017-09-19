@@ -191,8 +191,8 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
             scalar_solve(**vars())
             t1.stop()
 
-    temporal_hook(**vars())
-    
+    vars().update(temporal_hook(**vars()))
+
     # Save solution if required and check for killoasis file
     stop = save_solution(**vars())
 

@@ -389,7 +389,6 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                       tstep, t, u_axial, e_kin, area,
                        u_axial_vol, e_kin_vol, volume, Re, turb, F))
 
-
     return dict(F=F, u_err=u_err, u_err_integral=u_err_integral)
 
 
