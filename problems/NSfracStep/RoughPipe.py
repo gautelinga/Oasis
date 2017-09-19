@@ -377,9 +377,9 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                 u_err = u_target - u_axial_mean
                 if tstep == 0:
                     u_err_prev = u_err
-                    u_err_integral = (F-Kp*u_err)/Ki
-                else:
-                    u_err_integral += check_flux*dt*0.5*(u_err_prev+u_err)
+                    #u_err_integral = (F-Kp*u_err)/Ki
+                #else:
+                u_err_integral += check_flux*dt*0.5*(u_err_prev+u_err)
                 u_err_derivative = (u_err-u_err_prev)/(check_flux*dt)
 
                 F_arr[0] = Kp*u_err + Ki*u_err_integral + Kd*u_err_derivative
