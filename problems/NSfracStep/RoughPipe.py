@@ -369,22 +369,18 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
         turb = u_normal_vol/u_axial_vol
 
         if control == "Re":
-            F_arr = np.zeros(1)
-            if MPI.rank(mpi_comm_world()) == 0:
-                u_target = float(Re_target)*nu/(2.*rad_avg)
+            u_target = float(Re_target)*nu/(2.*rad_avg)
 
+            u_err_prev = u_err
+            u_err = u_target - u_axial_mean
+            if tstep == 0:
                 u_err_prev = u_err
-                u_err = u_target - u_axial_mean
-                if tstep == 0:
-                    u_err_prev = u_err
-                    #u_err_integral = (F-Kp*u_err)/Ki
-                #else:
-                u_err_integral += check_flux*dt*0.5*(u_err_prev+u_err)
-                u_err_derivative = (u_err-u_err_prev)/(check_flux*dt)
+                #u_err_integral = (F-Kp*u_err)/Ki
+            #else:
+            u_err_integral += check_flux*dt*0.5*(u_err_prev+u_err)
+            u_err_derivative = (u_err-u_err_prev)/(check_flux*dt)
 
-                F_arr[0] = Kp*u_err + Ki*u_err_integral + Kd*u_err_derivative
-            comm.Bcast(F_arr, root=0)
-            F = F_arr[0]
+            F += dt*check_flux*(Kp*u_err + Ki*u_err_integral + Kd*u_err_derivative)
 
         if MPI.rank(mpi_comm_world()) == 0:
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
