@@ -40,6 +40,8 @@ Nt = 500
 save_step = 150
 check_flux = 50  # 50
 
+# Regulatory time scale
+kreg = 8.*nu/0.5
 
 # Create a mesh here
 def mesh(mesh_file, **params):
@@ -104,7 +106,12 @@ else:
             N=None,
             scale=1.0,
             mesh_suffix="fine",
-            puff_magnitude=2.
+            puff_magnitude=2.,
+            control="Re",
+            Re_target=2000.,
+            Kp=10.*kreg,
+            Ki=20.*kreg**2,
+            Kd=0.05
         )
     )
 
@@ -323,7 +330,8 @@ def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
 def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                   newfolder, folder, check_flux, save_statistics, mesh,
                   facets, normal, check_if_reset_statistics, area, volume,
-                  Lz, nu,
+                  Lz, nu, F, u_err_integral, Kp, Ki, Kd, dt, u_err, Re_target,
+                  control,
                   **NS_namespace):
     # print timestep
     info_red("tstep = {}".format(tstep))       
@@ -360,12 +368,29 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
 
         turb = u_normal_vol/u_axial_vol
 
+        if control == "Re":
+            F_arr = np.zeros(1)
+            if MPI.rank(mpi_comm_world()) == 0:
+                u_target = float(Re_target)*nu/(2.*rad_avg)
+                u_err_prev = u_err
+                u_err = u_target - u_axial_mean
+
+                u_err_integral += check_flux*dt*u_err
+                u_err_derivative = (u_err-u_err_prev)/(check_flux*dt)
+
+                F_arr[0] = Kp*u_err + Ki*u_err_integral + Kd*u_err_derivative
+            comm.Bcast(F_arr, root=0)
+            F = F_arr[0]
+
         if MPI.rank(mpi_comm_world()) == 0:
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
                 fluxfile.write(
-                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
+                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
                       tstep, t, u_axial, e_kin, area,
-                       u_axial_vol, e_kin_vol, volume, Re, turb))
+                       u_axial_vol, e_kin_vol, volume, Re, turb, F))
+
+
+    return dict(F=F, u_err=u_err)
 
 
 def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
@@ -410,4 +435,5 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
     return dict(mesh=mesh, mesh_file=mesh_file, folder=folder, Lz=Lz,
                 inlet_wall_coords=inlet_wall_coords,
                 puff_center=puff_center, puff_radius=puff_radius,
-                constrained_domain=constrained_domain)
+                constrained_domain=constrained_domain,
+                u_err_integral=0., u_err=0.)
