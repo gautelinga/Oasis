@@ -109,9 +109,9 @@ else:
             puff_magnitude=2.,
             control="Re",
             Re_target=2000.,
-            Kp=10.*kreg,
-            Ki=20.*kreg**2,
-            Kd=0.05
+            Kp=100.*kreg,
+            Ki=200.*kreg**2,
+            Kd=0.005
         )
     )
 
@@ -385,9 +385,9 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
         if MPI.rank(mpi_comm_world()) == 0:
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
                 fluxfile.write(
-                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
+                   "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
                       tstep, t, u_axial, e_kin, area,
-                       u_axial_vol, e_kin_vol, volume, Re, turb, F))
+                       u_axial_vol, e_kin_vol, volume, Re, turb, F, u_err, u_err_integral))
 
     return dict(F=F, u_err=u_err, u_err_integral=u_err_integral)
 
