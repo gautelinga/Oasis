@@ -343,11 +343,22 @@ if __name__ == "__main__":
     interpolated_folder = os.path.join(init_folder,
                                        "Interpolated")
     if rank == 0:
+        print "Making folder: " + interpolated_folder
         if not os.path.exists(interpolated_folder):
             os.makedirs(interpolated_folder)
 
+        print "Creating snapshot."
+
     snapshot_filename = os.path.join(interpolated_folder, "snapshot")
     snapshot = Snapshot(snapshot_filename, elems_cyl, pts_xyz, pts_cyl)
+
+    if rank == 0:
+        print "Probing indicator."
+
+    probes(indicator)
+    indicator_probes = np.copy(probes.array(0))[:, 0]
+    probes.clear()
+    snapshot.h5f.create_dataset("Data/0/indicator", data=indicator_probes)
 
     probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict)
 
