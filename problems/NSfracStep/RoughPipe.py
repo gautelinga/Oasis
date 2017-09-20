@@ -17,6 +17,7 @@ from common.ductutils import tabulate_inlet_wall_nodes, \
    numpy_to_dolfin, get_mesh_properties, build_wall_coords
 import os
 import glob
+import subprocess
 
 
 # Some default values
@@ -109,9 +110,9 @@ else:
             puff_magnitude=2.,
             control="Re",
             Re_target=2000.,
-            Kp=200.*kreg,
+            Kp=2.*kreg,
             Ki=0.*200.*kreg**2,
-            Kd=0.*0.0005
+            Kd=0.05
         )
     )
 
@@ -167,10 +168,12 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
                                   os.path.join(init_folder,
                                                "Timeseries/u_from_tstep_*.h5"))])
 
-        h5fu_str = os.path.join(init_folder,
-                                "Timeseries/u_from_tstep_{}.h5".format(init_tstep))
-        h5fp_str = os.path.join(init_folder,
-                                "Timeseries/p_from_tstep_{}.h5".format(init_tstep))
+        h5fu_str = os.path.join(
+            init_folder,
+            "Timeseries/u_from_tstep_{}.h5".format(init_tstep))
+        h5fp_str = os.path.join(
+            init_folder,
+            "Timeseries/p_from_tstep_{}.h5".format(init_tstep))
 
         for h5f_str in [h5fu_str, h5fp_str]:
             if not os.path.exists(h5fu_str):
@@ -392,21 +395,26 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
     return dict(F=F, u_err=u_err, u_err_integral=u_err_integral)
 
 
-def theend(newfolder, tstep, stats, spark_puff, **NS_namespace):
+def theend(newfolder, tstep, stats, spark_puff, init_folder, **NS_namespace):
     """Store statistics before exiting"""
     statsfolder = path.join(newfolder, "Stats")
     stats.toh5(1, tstep, filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
 
 
 def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
-               mesh_suffix,
+               mesh_suffix, control, Re_target, init_folder,
                **NS_namespace):
     """ Do stuff before anything else. """
     if N is not None and isinstance(N, int):
+        mesh_suffix_str = "_" + mesh_suffix if bool(
+            isinstance(mesh_suffix, str)
+            and mesh_suffix is not "") else ""
         mesh_file = "mesh/rough_pipe_N{}{}.h5".format(
-            N, "_" + mesh_suffix if bool(isinstance(mesh_suffix, str)
-                                         and mesh_suffix is not "") else "")
-        folder = "RoughPipe_N{}_F{}_results/".format(N, F)
+            N, mesh_suffix_str)
+        if control == "Re":
+            folder = "RoughPipe_N{}_Re{}_results/".format(N, Re_target)
+        else:
+            folder = "RoughPipe_N{}_F{}_results/".format(N, F)
 
     if path.isfile(mesh_file):
         info_red("Mesh: " + mesh_file)
@@ -431,8 +439,20 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
 
     constrained_domain = PeriodicDomain(Lz)
 
+    if control == "Re" and init_folder is not None:
+        dump_flux_init = os.path.join(init_folder,
+                                      "Stats", "dump_flux.dat")
+        if os.path.exists(dump_flux_init):
+            last_line = subprocess.check_output(
+                ["tail", "-1", dump_flux_init]).split(" ")
+            if len(last_line) > 10:
+                # Force is stored at index 10
+                last_F = float(last_line[10])
+                info_green("Switching force from F={} to F={}.".format(F, last_F))
+                F = last_F
+
     return dict(mesh=mesh, mesh_file=mesh_file, folder=folder, Lz=Lz,
-                inlet_wall_coords=inlet_wall_coords,
+                inlet_wall_coords=inlet_wall_coords, F=F,
                 puff_center=puff_center, puff_radius=puff_radius,
                 constrained_domain=constrained_domain,
                 u_err_integral=0., u_err=0.)

@@ -106,8 +106,19 @@ for stats_path, t_mod in sims:
     # print info, data.shape
     t = data[:, 1]
     Re = data[:, 8]
+
+    label_extra = []
+    if "N" in info:
+        label_extra.append("N={N}")
+    if "F" in info:
+        label_extra.append("F={F}")
+    if "Re" in info:
+        label_extra.append("Re={Re}")
+    label = "{server}: " + ", ".join(label_extra)
+    label = label.format(**info)
+    
     plt.plot(t, Re, 'o',
-             label="{server}: N={N}, F={F}".format(**info))
+             label=label)
     p0 = (0., 2000., 1000.)
     try:
         popt, pcov = curve_fit(func, t, Re, p0)
