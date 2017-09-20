@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument("-Nz", type=int, default=200, help="Nz")
     parser.add_argument("-Nr", type=int, default=32, help="Nr")
     parser.add_argument("-Ntheta", type=int, default=64, help="Ntheta")
-    parser.add_argument("-s", "--steps", type=str, default="-1",
+    parser.add_argument("-s", "--steps", type=str, default="m1",
                         help="Timesteps to get")
     args = parser.parse_args()
     return args
@@ -305,6 +305,9 @@ if __name__ == "__main__":
     dsets_u = get_dsets("u", init_tsteps)
     dsets_p = get_dsets("p", init_tsteps)
     assert(len(dsets_u) == len(dsets_p))
+    if len(dsets_u) == 0:
+        info_red("No datasets found.")
+        exit()
 
     ids = eval("range(len(dsets_u))[{}]".format(steps))
     if not isinstance(ids, list):
