@@ -187,7 +187,7 @@ def probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict):
         probes.clear()
 
         probes(p)
-        p_probes = np.copy(probes.array(0))[:, 0]
+        p_probes = np.copy(probes.array(0))
         probes.clear()
 
         snapshot.write([u_probes, p_probes], fields=["u", "p"],
@@ -366,7 +366,7 @@ if __name__ == "__main__":
     probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict)
 
     probes(indicator)
-    indicator_probes = np.copy(probes.array(0))[:, 0]
+    indicator_probes = np.copy(probes.array(0))
     probes.clear()
     snapshot.h5f.create_dataset("Data/0/indicator", data=indicator_probes)
 
