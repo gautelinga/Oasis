@@ -322,17 +322,25 @@ if __name__ == "__main__":
         nodes = np.array(h5fu.get("Mesh/0/mesh/geometry"))
         elems = np.array(h5fu.get("Mesh/0/mesh/topology"))
 
+    if rank == 0:
+        print "Initializing!"
+
     mesh, S, V, x, xdict = initialize(nodes, elems)
 
     xy_mid = np.array([0., 0.])
     R, Lz = get_cyl_dim(nodes, xy_mid)
     if rank == 0:
-        print R, Lz
+        print "Dimensions:", R, Lz
 
     pts_cyl, elems_cyl = cyl_coords(args.Nr, args.Ntheta, args.Nz)
     pts_xyz = cyl2xyz(pts_cyl)
 
+    if rank == 0:
+        print "Placing probes..."
     probes = Probes(pts_xyz.flatten(), V)
+
+    if rank == 0:
+        print "Initializing functions..."
 
     u_x = [df.Function(S) for _ in range(3)]
     u = df.Function(V)
@@ -355,11 +363,11 @@ if __name__ == "__main__":
     if rank == 0:
         print "Probing indicator."
 
+    probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict)
+
     probes(indicator)
     indicator_probes = np.copy(probes.array(0))[:, 0]
     probes.clear()
     snapshot.h5f.create_dataset("Data/0/indicator", data=indicator_probes)
-
-    probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict)
 
     snapshot.close()
