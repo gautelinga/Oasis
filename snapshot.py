@@ -368,6 +368,7 @@ if __name__ == "__main__":
     probes(indicator)
     indicator_probes = np.copy(probes.array(0))
     probes.clear()
-    snapshot.h5f.create_dataset("Data/0/indicator", data=indicator_probes)
+    if rank == 0:
+        snapshot.h5f.create_dataset("Data/0/indicator", data=indicator_probes)
 
     snapshot.close()
