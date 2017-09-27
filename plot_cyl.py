@@ -108,9 +108,19 @@ if __name__ == "__main__":
                                "Interpolated",
                                "Plots",
                                "uz_xz")
+        data_dir = os.path.join(args.folder,
+                                "Interpolated",
+                                "Data")
+        
         if not os.path.exists(fig_dir):
             os.makedirs(fig_dir)
 
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
+        np.savetxt(os.path.join(data_dir, "z.dat"), z)
+        np.savetxt(os.path.join(data_dir, "t.dat"), np.array(dset_ids))
+        
         plt.figure(frameon=False,
                    figsize=(zv.max()-zv.min(), xv.max()-xv.min()))
         plt.axes().set_aspect("equal")
@@ -123,7 +133,14 @@ if __name__ == "__main__":
             labelleft="off")
         plt.gca().set_axis_off()
 
-        for dset_id in dset_ids[:]:
+        turb_z_t = np.zeros((len(dset_ids), len(z)))
+        uz_z_t = np.zeros_like(turb_z_t)
+        turb_z_t_center = np.zeros_like(turb_z_t)
+        uz_z_t_center = np.zeros_like(turb_z_t)
+
+        for i, dset_id in enumerate(dset_ids[:]):
+            print "dset = {}".format(dset_id)
+            
             u_data = np.array(h5f["Data/{}/{}".format(
                 dset_id, "u")])
 
@@ -133,10 +150,18 @@ if __name__ == "__main__":
 
             u_r = u_x*costheta + u_y*sintheta
             u_theta = - u_x*sintheta + u_y*costheta
+            
+            # Integrals
+            uz_z = integrate_radially(r, theta, u_z)
+            uz_z_t[i, :] = uz_z
+            
+            turb = u_x**2 + u_y**2
+            turb_z = integrate_radially(r, theta, turb)
+            turb_z_t[i, :] = turb_z
 
-            # Integral
-            u_z_cp = u_z
-            uz_z = integrate_radially(r, theta, u_z_cp)
+            # Centerline
+            turb_z_t_center[i, :] = turb[0, 0, :]
+            uz_z_t_center[i, :] = u_z[0, 0, :]
 
             # Cross
             x_loc = np.vstack((xv[Ntheta/2, ::-1, :], xv[0, 1:, :]))
@@ -155,5 +180,15 @@ if __name__ == "__main__":
 
                 os.system("convert {figname} -trim {figname}".format(
                     figname=figname))
+
+        if rank == 0:
+            np.savetxt(os.path.join(data_dir, "turb_z_t.dat"),
+                       turb_z_t)
+            np.savetxt(os.path.join(data_dir, "uz_z_t.dat"),
+                       uz_z_t)
+            np.savetxt(os.path.join(data_dir, "turb_z_t_center.dat"),
+                       turb_z_t_center)
+            np.savetxt(os.path.join(data_dir, "uz_z_t_center.dat"),
+                       uz_z_t_center)
 
     print "yessda"
