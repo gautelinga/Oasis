@@ -2,6 +2,7 @@ import os, time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import argparse
 
 
 def get_time(folder):
@@ -43,9 +44,13 @@ def parse_info(stats_path, servers, default="this"):
     return info
 
 
-def func(t, t_0, A, tau):
-    return A * (1.-np.exp(-(t-t_0)/tau))
+def func(t, t_0, A, B):
+    return (A-B) * np.exp(-t/tau) + B
 
+
+parser = argparse.ArgumentParser(description="Plot active simulations.")
+parser.add_argument("-p", "--plot", type=str, default="Re")
+args = parser.parse_args()
 
 os.chdir(os.getenv("HOME"))
 thishost = os.uname()[1]
@@ -105,7 +110,14 @@ for stats_path, t_mod in sims:
     info = parse_info(stats_path, servers, default=thishost)
     # print info, data.shape
     t = data[:, 1]
-    Re = data[:, 8]
+    if args.plot == "Re":
+        data_loc = data[:, 8]
+    elif args.plot == "F":
+        data_loc = data[:, 10]
+    elif args.plot == "q":
+        data_loc = data[:, 9]
+    else:
+        exit("Plot what?")
 
     label_extra = []
     if "N" in info:
@@ -116,18 +128,18 @@ for stats_path, t_mod in sims:
         label_extra.append("Re={Re}")
     label = "{server}: " + ", ".join(label_extra)
     label = label.format(**info)
-    
-    plt.plot(t, Re, 'o',
+
+    plt.plot(t, data_loc, 'o',
              label=label)
     p0 = (0., 2000., 1000.)
     try:
-        popt, pcov = curve_fit(func, t, Re, p0)
+        popt, pcov = curve_fit(func, t, data_loc, p0)
         plt.plot(t, func(t, *popt), '-',
                  label="fit, A={1:4.2f}, tau={2:4.2f}".format(*popt))
     except:
         pass
 
 plt.xlabel("Time")
-plt.ylabel("Re")
+plt.ylabel(args.plot)
 plt.legend()
 plt.show()
