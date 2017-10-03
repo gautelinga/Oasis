@@ -36,6 +36,8 @@ def correct(z, L):
     for step in range(len(z)-1):
         if z[step+1] < z[step] - L/2.:
             z[step+1:] += L
+	elif z[step+1] > z[step] + L/2:
+	    z[step+1:] -= L
 
 def derivative(z_l, t):
     dt = t[1]-t[0]
@@ -99,6 +101,8 @@ if __name__ == "__main__":
     dz = z[1]-z[0]
     L = dz*len(z)
 
+    print L
+	
     z0_stats = np.cumsum(u_stats*check_flux*dt)
 
     q_thresh = 0.02
