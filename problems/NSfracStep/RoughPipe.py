@@ -383,7 +383,7 @@ def theend(newfolder, tstep, stats, spark_puff, init_folder, **NS_namespace):
 
 
 def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
-               mesh_suffix, control, Re_target, init_folder,
+               mesh_suffix, control, Re_target, init_folder, scale,
                **NS_namespace):
     """ Do stuff before anything else. """
     if N is not None and isinstance(N, int):
@@ -448,13 +448,13 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
                 # u_axial_vol is stored at index 5
                 # volume is stored at index 7
                 last_F = float(last_line[10])
-                last_u_err = float(last_line[11])
+                # last_u_err = float(last_line[11])
                 last_u = float(last_line[5])/float(last_line[7])
-                last_u_target = last_u + last_u_err
+                # last_u_target = last_u + last_u_err
 
-                info_green("Switching force from F={} to F={}.".format(F, last_F))
-                F = last_F
-                u_err = last_u - u_target
+                info_green("Switching force from F={} to F={}.".format(F, scale*last_F))
+                F = scale*last_F
+                u_err = scale*last_u - u_target
 
     return dict(mesh=mesh, mesh_file=mesh_file, folder=folder, Lz=Lz,
                 inlet_wall_coords=inlet_wall_coords, F=F,
