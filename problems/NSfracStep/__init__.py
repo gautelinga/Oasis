@@ -77,7 +77,8 @@ NS_parameters.update(
     method = 'WeightedAverage', # Or 'default'
     solver_type = 'cg',
     preconditioner_type = 'jacobi'),
-  
+
+  control = "F",
 )
   
 def velocity_tentative_hook(**NS_namespace):
