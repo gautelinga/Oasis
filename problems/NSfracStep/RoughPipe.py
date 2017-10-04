@@ -313,28 +313,14 @@ def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
 
     stats = StructuredGrid(V, N, origin, vectors, dL, statistics=True)
 
-    # Create FacetFunction to compute flux
-    Inlet = AutoSubDomain(inlet)
-    facets = FacetFunction('size_t', mesh, 0)
-    Inlet.mark(facets, 1)
-    normal = FacetNormal(mesh)
-
-    area = assemble(Constant(1.)*ds(1, domain=mesh, subdomain_data=facets))
-    info("Cross sectional area at inlet: " + str(area))
-
-    volume = assemble(Constant(1.)*dx(domain=mesh))
-    info("Volume: " + str(volume))
-    info("Mean cross sectional area: " + str(volume/Lz))
-
-    return dict(uv=uv, stats=stats, facets=facets, normal=normal,
-                area=area, volume=volume)
+    return dict(uv=uv, stats=stats)
 
 
 def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                   newfolder, folder, check_flux, save_statistics, mesh,
                   facets, normal, check_if_reset_statistics, area, volume,
-                  Lz, nu, F, u_err_integral, Kp, Ki, Kd, dt, u_err, Re_target,
-                  control,
+                  Lz, nu, F, u_err_integral, Kp, Ki, Kd, dt, u_err, u_target,
+                  control, rad_avg,
                   **NS_namespace):
     # print timestep
     info_red("tstep = {}".format(tstep))       
@@ -365,25 +351,20 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
         e_kin_vol = 0.5*assemble(dot(u_, u_)*dx(domain=mesh))
         u_normal_vol = np.sqrt(assemble(dot(u_n, u_n)*dx(domain=mesh)))
 
-        rad_avg = np.sqrt(volume/(Lz*np.pi))
         u_axial_mean = u_axial_vol/volume
         Re = u_axial_mean*2*rad_avg/nu
 
         turb = u_normal_vol/u_axial_vol
 
         if control == "Re":
-            u_target = float(Re_target)*nu/(2.*rad_avg)
-
             u_err_prev = u_err
             u_err = u_target - u_axial_mean
-            if tstep == 0:
-                u_err_prev = u_err
-                #u_err_integral = (F-Kp*u_err)/Ki
-            #else:
+
             u_err_integral += check_flux*dt*0.5*(u_err_prev+u_err)
             u_err_derivative = (u_err-u_err_prev)/(check_flux*dt)
 
-            F += dt*check_flux*(Kp*u_err + Ki*u_err_integral + Kd*u_err_derivative)
+            F += dt*check_flux*(Kp*u_err + Ki*u_err_integral +
+                                Kd*u_err_derivative)
 
         if MPI.rank(mpi_comm_world()) == 0:
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
@@ -439,6 +420,22 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
 
     constrained_domain = PeriodicDomain(Lz)
 
+    # Create FacetFunction to compute flux
+    Inlet = AutoSubDomain(inlet)
+    facets = FacetFunction('size_t', mesh, 0)
+    Inlet.mark(facets, 1)
+    normal = FacetNormal(mesh)
+    
+    area = assemble(Constant(1.)*ds(1, domain=mesh, subdomain_data=facets))
+    info("Cross sectional area at inlet: " + str(area))
+
+    volume = assemble(Constant(1.)*dx(domain=mesh))
+    info("Volume: " + str(volume))
+    info("Mean cross sectional area: " + str(volume/Lz))
+
+    rad_avg = np.sqrt(volume/(Lz*np.pi))
+    u_target = float(Re_target)*nu/(2.*rad_avg)
+
     if control == "Re" and init_folder is not None:
         dump_flux_init = os.path.join(init_folder,
                                       "Stats", "dump_flux.dat")
@@ -447,12 +444,22 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
                 ["tail", "-1", dump_flux_init]).split(" ")
             if len(last_line) > 10:
                 # Force is stored at index 10
+                # u_err is stored at index 11
+                # u_axial_vol is stored at index 5
+                # volume is stored at index 7
                 last_F = float(last_line[10])
+                last_u_err = float(last_line[11])
+                last_u = float(last_line[5])/float(last_line[7])
+                last_u_target = last_u + last_u_err
+
                 info_green("Switching force from F={} to F={}.".format(F, last_F))
                 F = last_F
+                u_err = last_u - u_target
 
     return dict(mesh=mesh, mesh_file=mesh_file, folder=folder, Lz=Lz,
                 inlet_wall_coords=inlet_wall_coords, F=F,
                 puff_center=puff_center, puff_radius=puff_radius,
                 constrained_domain=constrained_domain,
-                u_err_integral=0., u_err=0.)
+                u_err_integral=0., u_err=u_err, u_target=u_target,
+                rad_avg=rad_avg, facets=facets, normal=normal,
+                area=area, volume=volume)

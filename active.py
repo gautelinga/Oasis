@@ -100,6 +100,8 @@ for basedir in basedirs:
                         if age < max_age:
                             sims.append((stats_path, t_mod))
 
+plots = args.plot.split(",")
+
 for stats_path, t_mod in sims:
     print "Loading:", stats_path
     if "mount_" in stats_path:
@@ -110,14 +112,6 @@ for stats_path, t_mod in sims:
     info = parse_info(stats_path, servers, default=thishost)
     # print info, data.shape
     t = data[:, 1]
-    if args.plot == "Re":
-        data_loc = data[:, 8]
-    elif args.plot == "F":
-        data_loc = data[:, 10]
-    elif args.plot == "q":
-        data_loc = data[:, 9]
-    else:
-        exit("Plot what?")
 
     label_extra = []
     if "N" in info:
@@ -129,17 +123,28 @@ for stats_path, t_mod in sims:
     label = "{server}: " + ", ".join(label_extra)
     label = label.format(**info)
 
-    plt.plot(t, data_loc, 'o',
-             label=label)
-    p0 = (0., 2000., 1000.)
-    try:
-        popt, pcov = curve_fit(func, t, data_loc, p0)
-        plt.plot(t, func(t, *popt), '-',
-                 label="fit, A={1:4.2f}, tau={2:4.2f}".format(*popt))
-    except:
-        pass
+    for i, plot in enumerate(plots):
+        if plot == "Re":
+            data_loc = data[:, 8]
+        elif plot == "F":
+            data_loc = data[:, 10]
+        elif plot == "q":
+            data_loc = data[:, 9]
+        else:
+            exit("Plot what?")
 
-plt.xlabel("Time")
-plt.ylabel(args.plot)
-plt.legend()
+        plt.figure(i)
+        plt.plot(t, data_loc, 'o',
+                 label=label)
+        p0 = (0., 2000., 1000.)
+        try:
+            popt, pcov = curve_fit(func, t, data_loc, p0)
+            plt.plot(t, func(t, *popt), '-',
+                     label="fit, A={1:4.2f}, tau={2:4.2f}".format(*popt))
+        except:
+            pass
+
+        plt.xlabel("Time")
+        plt.ylabel(plot)
+        plt.legend()
 plt.show()
