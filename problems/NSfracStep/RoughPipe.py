@@ -436,6 +436,8 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
     rad_avg = np.sqrt(volume/(Lz*np.pi))
     u_target = float(Re_target)*nu/(2.*rad_avg)
 
+    u_err = 0.
+
     if control == "Re" and init_folder is not None:
         dump_flux_init = os.path.join(init_folder,
                                       "Stats", "dump_flux.dat")
