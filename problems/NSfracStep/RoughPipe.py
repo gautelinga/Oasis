@@ -370,8 +370,9 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
             with open(statsfolder + "/dump_flux.dat", "a") as fluxfile:
                 fluxfile.write(
                    "{:d} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e} {:e}\n".format(
-                      tstep, t, u_axial, e_kin, area,
-                       u_axial_vol, e_kin_vol, volume, Re, turb, F, u_err, u_err_integral))
+                       tstep, t, u_axial, e_kin, area,
+                       u_axial_vol, e_kin_vol, volume, Re,
+                       turb, F, u_err, u_err_integral))
 
     return dict(F=F, u_err=u_err, u_err_integral=u_err_integral)
 
