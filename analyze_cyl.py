@@ -15,6 +15,8 @@ def parse_args():
                         default="1,2,3,4,5,6,7", help="Which plots to plot.")
     parser.add_argument("--mode", type=str, default="trace",
                         help="Mode")
+    parser.add_argument("-i", "--initial_time", type=float, default=0.,
+                        help="Initial step.")
     args = parser.parse_args()
     return args
 
@@ -145,7 +147,8 @@ if __name__ == "__main__":
 
     t = t*save_step*dt
     t_adv = t*u_mean
-
+    dt_adv = t_adv[1]-t_adv[0]
+    
     dz = z[1]-z[0]
     nz = len(z)
     L = dz*nz
@@ -200,7 +203,7 @@ if __name__ == "__main__":
         i_Re0 = get_first_crossing(Re0)
         i_F0 = get_first_crossing(F0)
         i_q0 = get_first_crossing(q0)
-        i_first = np.max([i_Re0, i_F0, i_q0])
+        i_first = np.max([i_Re0, i_F0, i_q0, int(args.initial_time/dt_adv)])
     else:
         i_first = 0
 
@@ -235,6 +238,10 @@ if __name__ == "__main__":
     z_l_f = np.poly1d(z_l_fit)
     z_r_f = np.poly1d(z_r_fit)
 
+    puff_length = (z_r-z_l) % L
+    mean_puff_length = puff_length.mean()
+    print "Mean puff length:", mean_puff_length
+    
     if 2 in plots:
         plt.figure(2)
         plt.plot(t_adv, z0, 'b.-')
@@ -250,42 +257,43 @@ if __name__ == "__main__":
         plt.plot(t_adv, z0-z0_f(t_adv), 'b.-')
         plt.plot(t_adv, z_l-z0_f(t_adv), 'r.-')
         plt.plot(t_adv, z_r-z0_f(t_adv),  'y.-')
-        plt.plot(t_adv, z_r-z_l, 'g.-')
+        plt.plot(t_adv, puff_length, 'g.-')
+        plt.plot(t_adv, np.ones_like(t_adv)*mean_puff_length,
+                 "k-")
         plt.show()
     
     q_shift = np.zeros_like(q_z_t)
     uz_center_shift = np.zeros_like(q_z_t)
-    
-    dt_adv = t_adv[1]-t_adv[0]
     for it in range(len(q_shift[:, 0])):
-        iz = int((z0_f(dt_adv*it)-z_l[0])/dz) % nz
+        iz = int((z0_f(dt_adv*it)-z_l[0]+0.5*L)/dz) % nz
         q_shift[it, nz-iz:] = q_z_t[it, :iz]
         q_shift[it, :nz-iz] = q_z_t[it, iz:]
         uz_center_shift[it, nz-iz:] = uz_z_t_center[it, :iz]
         uz_center_shift[it, :nz-iz] = uz_z_t_center[it, iz:]
 
+    extent = [0, L, 0, dt_adv*len(uz_z_t_center[:, 0])]
     if 4 in plots:
         plt.figure(4)
         plt.imshow(q_z_t/u_mean, origin='lower', cmap="viridis",
-                   extent=[0,L,0,dt_adv*len(t_adv)])
+                   extent=extent)
         plt.show()
 
     if 5 in plots:
         fig = plt.figure(5)
         cax = plt.imshow(q_shift/u_mean, origin='lower', cmap="viridis",
-                   extent=[0,L,0,dt_adv*len(t_adv)])
+                         extent=extent)
         fig.colorbar(cax)
         plt.show()
 
     if 6 in plots:
         plt.figure(6)
         plt.imshow(uz_z_t_center/u_mean, origin='lower', cmap="viridis",
-                   extent=[0,L,0,dt_adv*len(t_adv)])
+                   extent=extent)
         plt.show()
 
     if 7 in plots:
         fig = plt.figure(7)
         cax = plt.imshow(uz_center_shift/u_mean, origin='lower', cmap="viridis",
-                   extent=[0,L,0,dt_adv*len(t_adv)])
+                         extent=extent)
         fig.colorbar(cax)
         plt.show()
