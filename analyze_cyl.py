@@ -268,13 +268,20 @@ if __name__ == "__main__":
     
     q_shift = np.zeros_like(q_z_t)
     uz_center_shift = np.zeros_like(q_z_t)
+
+    z_puff_init_l = z_l_fit[1] % L
+    z_puff_init_r = z_r_fit[1]
+    if z_puff_init_r < z_puff_init_l:
+        z_puff_init_r += L
+    z_puff_init = 0.5*(z_puff_init_l+z_puff_init_r) % L
+    
     for it in range(len(q_shift[:, 0])):
-        iz = int((z0_fit[0]*dt_adv*it-z_l[0]+0.5*L)/dz) % nz
+        iz = int((z0_fit[0]*dt_adv*it-z_puff_init+0.5*L)/dz) % nz
         q_shift[it, nz-iz:] = q_z_t[it, :iz]
         q_shift[it, :nz-iz] = q_z_t[it, iz:]
         uz_center_shift[it, nz-iz:] = uz_z_t_center[it, :iz]
         uz_center_shift[it, :nz-iz] = uz_z_t_center[it, iz:]
-
+    
     extent = [0, L, 0, dt_adv*len(uz_z_t_center[:, 0])]
     if 4 in plots:
         plt.figure(4)
