@@ -265,7 +265,7 @@ if __name__ == "__main__":
     q_shift = np.zeros_like(q_z_t)
     uz_center_shift = np.zeros_like(q_z_t)
     for it in range(len(q_shift[:, 0])):
-        iz = int((z0_f(dt_adv*it)-z_l[0]+0.5*L)/dz) % nz
+        iz = int((z0_fit[0]*dt_adv*it-z_l[0]-0.5*L)/dz) % nz
         q_shift[it, nz-iz:] = q_z_t[it, :iz]
         q_shift[it, :nz-iz] = q_z_t[it, iz:]
         uz_center_shift[it, nz-iz:] = uz_z_t_center[it, :iz]
