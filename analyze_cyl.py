@@ -86,6 +86,10 @@ if __name__ == "__main__":
     params_file = os.path.join(args.folder,
                                "Timeseries", "params.dat")
 
+    fig_dir = os.path.join(args.folder,
+                           "Interpolated",
+                           "Plots")
+    
     with open(params_file) as p:
         params = cPickle.load(p)
 
@@ -265,7 +269,7 @@ if __name__ == "__main__":
     q_shift = np.zeros_like(q_z_t)
     uz_center_shift = np.zeros_like(q_z_t)
     for it in range(len(q_shift[:, 0])):
-        iz = int((z0_fit[0]*dt_adv*it-z_l[0]-0.5*L)/dz) % nz
+        iz = int((z0_fit[0]*dt_adv*it-z_l[0]+0.5*L)/dz) % nz
         q_shift[it, nz-iz:] = q_z_t[it, :iz]
         q_shift[it, :nz-iz] = q_z_t[it, iz:]
         uz_center_shift[it, nz-iz:] = uz_z_t_center[it, :iz]
@@ -276,6 +280,12 @@ if __name__ == "__main__":
         plt.figure(4)
         plt.imshow(q_z_t/u_mean, origin='lower', cmap="viridis",
                    extent=extent)
+        figname = os.path.join(fig_dir,
+                               "q_z_t.png")
+        plt.xticks([0., L])
+        plt.savefig(figname,
+                    bbox_inches="tight",
+                    pad_inches=0)
         plt.show()
 
     if 5 in plots:
@@ -283,12 +293,24 @@ if __name__ == "__main__":
         cax = plt.imshow(q_shift/u_mean, origin='lower', cmap="viridis",
                          extent=extent)
         fig.colorbar(cax)
+        figname = os.path.join(fig_dir,
+                               "q_shift.png")
+        plt.xticks([0., L])
+        plt.savefig(figname,
+                    bbox_inches="tight",
+                    pad_inches=0)
         plt.show()
 
     if 6 in plots:
         plt.figure(6)
         plt.imshow(uz_z_t_center/u_mean, origin='lower', cmap="viridis",
                    extent=extent)
+        figname = os.path.join(fig_dir,
+                               "uz_z_t_center.png")
+        plt.xticks([0., L])
+        plt.savefig(figname,
+                    bbox_inches="tight",
+                    pad_inches=0)
         plt.show()
 
     if 7 in plots:
@@ -296,4 +318,10 @@ if __name__ == "__main__":
         cax = plt.imshow(uz_center_shift/u_mean, origin='lower', cmap="viridis",
                          extent=extent)
         fig.colorbar(cax)
+        figname = os.path.join(fig_dir,
+                               "uz_center_shift.png")
+        plt.xticks([0., L])
+        plt.savefig(figname,
+                    bbox_inches="tight",
+                    pad_inches=0)
         plt.show()
