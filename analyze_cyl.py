@@ -16,7 +16,9 @@ def parse_args():
     parser.add_argument("--mode", type=str, default="trace",
                         help="Mode")
     parser.add_argument("-i", "--initial_time", type=float, default=0.,
-                        help="Initial step.")
+                        help="Initial time.")
+    parser.add_argument("-f", "--final_time", type=float, default=0.,
+                        help="Final time.")
     args = parser.parse_args()
     return args
 
@@ -211,17 +213,21 @@ if __name__ == "__main__":
     else:
         i_first = 0
 
-    t_adv = t_adv[i_first:]
-    Re0 = Re0[i_first:]
-    F0 = F0[i_first:]
-    q0 = q0[i_first:]
+    i_last = len(t_adv)
+    if args.final_time > 0.:
+        i_last = np.min([i_last, int(args.final_time/dt_adv)]) 
 
-    u0 = u0[i_first:]
-    u_l = u_l[i_first:]
-    u_r = u_r[i_first:]
-    z0 = z0[i_first:]
-    z_l = z_l[i_first:]
-    z_r = z_r[i_first:]
+    t_adv = t_adv[i_first:i_last]
+    Re0 = Re0[i_first:i_last]
+    F0 = F0[i_first:i_last]
+    q0 = q0[i_first:i_last]
+
+    u0 = u0[i_first:i_last]
+    u_l = u_l[i_first:i_last]
+    u_r = u_r[i_first:i_last]
+    z0 = z0[i_first:i_last]
+    z_l = z_l[i_first:i_last]
+    z_r = z_r[i_first:i_last]
 
     plots = [int(q) for q in args.plot.split(",")]
     
