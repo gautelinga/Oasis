@@ -123,7 +123,7 @@ if __name__ == "__main__":
         plt.plot(F_fric, q_stats)
 
         plt.show()
-    
+
     if args.mode == "trace":
         new_vars = dict()
         for f in glob.glob(os.path.join(data_dir, "*.dat")):
