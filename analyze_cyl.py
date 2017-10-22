@@ -113,8 +113,19 @@ if __name__ == "__main__":
         var = os.path.splitext(os.path.basename(f))[0]
         new_vars[var] = np.loadtxt(f)
     vars().update(**new_vars)
+
+    if args.mode == "F":
+        plt.figure()
+        plt.plot(t_stats, F_stats)
+        plt.plot(t_stats, F_stats.mean()*np.ones_like(t_stats))
+        plt.show()
+
+        print "mean(F) =", F_stats.mean()
+        print "max(u_z_t_center) =", uz_z_t_center.max()
+
+        exit()
         
-    if args.mode == "balance":
+    elif args.mode == "balance":
         U = u_stats
         F = F_stats
         dUdt = derivative(u_stats, t_stats)
