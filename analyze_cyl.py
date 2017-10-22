@@ -121,7 +121,7 @@ if __name__ == "__main__":
         plt.show()
 
         print "mean(F) =", F_stats.mean()
-        print "max(u_z_t_center) =", uz_z_t_center.max()
+        print "max(u_z_t_center)/mean(u) =", uz_z_t_center.max()/u_stats.mean()
 
         exit()
         
