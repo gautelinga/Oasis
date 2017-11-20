@@ -150,7 +150,7 @@ def body_force(F, **NS_namespace):
 
 def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
                spark_puff, puff_center, puff_magnitude, puff_radius, scale,
-               mesh,
+               mesh, Lz,
                **NS_namespace):
     """ Initialize from timeseries file """
     if init_folder is None and restart_folder is None:
@@ -165,8 +165,9 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
     elif restart_folder is None:
         init_tstep = max([int(os.path.basename(string)[13:-3])
                           for string in glob.glob(
-                                  os.path.join(init_folder,
-                                               "Timeseries/u_from_tstep_*.h5"))])
+                                  os.path.join(
+                                      init_folder,
+                                      "Timeseries/u_from_tstep_*.h5"))])
 
         h5fu_str = os.path.join(
             init_folder,
@@ -198,31 +199,8 @@ def initialize(V, q_, q_1, q_2, bcs, restart_folder, init_folder, init_step,
             p_data = scale*np.array(h5fp.get("VisualisationVector/" + step_p))
         assert(step_u == step_p)
 
-        other_mesh = numpy_to_dolfin(nodes, elems)
-        S = FunctionSpace(other_mesh, "CG", 1)
-
-        x = make_dof_coords(S)
-        xdict = make_xdict(nodes)
-
-        u0x = Function(S)
-        u0y = Function(S)
-        u0z = Function(S)
-        p0 = Function(S)
-
-        set_val(u0x, u_data[:, 0], x, xdict)
-        set_val(u0y, u_data[:, 1], x, xdict)
-        set_val(u0z, u_data[:, 2], x, xdict)
-        set_val(p0, p_data[:], x, xdict)
-
-        info_green("Projecting u0x...")
-        u0x = interpolate_nonmatching_mesh(u0x, V)
-        info_green("Projecting u0y...")
-        u0y = interpolate_nonmatching_mesh(u0y, V)
-        info_green("Projecting u0z...")
-        u0z = interpolate_nonmatching_mesh(u0z, V)
-        info_green("Projecting p0...")
-        p0 = interpolate_nonmatching_mesh(p0, V)
-        info_green("Done with projecting (for now).")
+        u0x, u0y, u0z, p0 = project_data(
+            u_data, p_data, nodes, elems, V, Lz)
 
         if spark_puff:
             info_green("Making puff!")
@@ -426,7 +404,7 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
     facets = FacetFunction('size_t', mesh, 0)
     Inlet.mark(facets, 1)
     normal = FacetNormal(mesh)
-    
+
     area = assemble(Constant(1.)*ds(1, domain=mesh, subdomain_data=facets))
     info("Cross sectional area at inlet: " + str(area))
 
@@ -455,7 +433,8 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
                 last_u = float(last_line[5])/float(last_line[7])
                 # last_u_target = last_u + last_u_err
 
-                info_green("Switching force from F={} to F={}.".format(F, scale*last_F))
+                info_green("Switching force from F={} to F={}.".format(
+                    F, scale*last_F))
                 F = scale*last_F
                 u_err = scale*last_u - u_target
 
@@ -466,3 +445,76 @@ def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
                 u_err_integral=0., u_err=u_err, u_target=u_target,
                 rad_avg=rad_avg, facets=facets, normal=normal,
                 area=area, volume=volume)
+
+
+def project_data(u_data, p_data, nodes, elems, V, Lz):
+    other_mesh = numpy_to_dolfin(nodes, elems)
+    S = FunctionSpace(other_mesh, "CG", 1)
+
+    x = make_dof_coords(S)
+    xdict = make_xdict(nodes)
+
+    u0x_ = Function(S)
+    u0y_ = Function(S)
+    u0z_ = Function(S)
+    p0_ = Function(S)
+
+    set_val(u0x_, u_data[:, 0], x, xdict)
+    set_val(u0y_, u_data[:, 1], x, xdict)
+    set_val(u0z_, u_data[:, 2], x, xdict)
+    set_val(p0_, p_data[:], x, xdict)
+
+    info_green("Projecting u0x...")
+    u0x = interpolate_nonmatching_mesh(u0x_, V)
+    info_green("Projecting u0y...")
+    u0y = interpolate_nonmatching_mesh(u0y_, V)
+    info_green("Projecting u0z...")
+    u0z = interpolate_nonmatching_mesh(u0z_, V)
+    info_green("Projecting p0...")
+    p0 = interpolate_nonmatching_mesh(p0_, V)
+
+    # Designated mesh
+    S_z_max = nodes[:, 2].max()
+
+    double_mesh = S_z_max < Lz    
+    if double_mesh:
+        info_green("Interpolating on the other part of the doubled mesh.")
+
+        # This has to be done so for the interpolation to work...
+        other_mesh_2 = Mesh(other_mesh)
+        other_mesh_2.coordinates()[:, 2] += S_z_max
+        S_2 = FunctionSpace(other_mesh_2, "CG", 1)
+        u0x_2 = Function(S_2)
+        u0y_2 = Function(S_2)
+        u0z_2 = Function(S_2)
+        p0_2 = Function(S_2)
+        u0x_2.vector()[:] = u0x_.vector()
+        u0y_2.vector()[:] = u0y_.vector()
+        u0z_2.vector()[:] = u0z_.vector()
+        p0_2.vector()[:] = p0_.vector()
+
+        info_green("Projecting u0x_2...")
+        u0x_2 = interpolate_nonmatching_mesh(u0x_2, V)
+        info_green("Projecting u0y_2...")
+        u0y_2 = interpolate_nonmatching_mesh(u0y_2, V)
+        info_green("Projecting u0z_2...")
+        u0z_2 = interpolate_nonmatching_mesh(u0z_2, V)
+        info_green("Projecting p0_2...")
+        p0_2 = interpolate_nonmatching_mesh(p0_2, V)
+
+        info_green("Summing")
+        add_nonzero(u0x, u0x_2)
+        add_nonzero(u0y, u0y_2)
+        add_nonzero(u0z, u0z_2)
+        add_nonzero(p0, p0_2)
+
+    info_green("Done with projecting (for now).")
+
+    return u0x, u0y, u0z, p0
+
+
+def add_nonzero(a, b):
+    a_arr = a.vector().array()
+    nonzero_ids = a_arr == 0.0
+    a_arr[nonzero_ids] = b.vector().array()[nonzero_ids]
+    a.vector()[:] = a_arr
