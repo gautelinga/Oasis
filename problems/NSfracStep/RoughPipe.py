@@ -291,7 +291,7 @@ def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
     # stats = StructuredGrid(V, N, origin, vectors, dL, statistics=True)
 
     # return dict(uv=uv, stats=stats)
-    return dict(uv=uv)
+    return dict(uv=uv, stats=None)
 
 
 def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
@@ -302,17 +302,18 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
                   **NS_namespace):
     # print timestep
     info_red("tstep = {}".format(tstep))       
-    if check_if_reset_statistics(folder):
-        info_red("Resetting statistics")
-        stats.probes.clear()
+    if stats is not None:
+        if check_if_reset_statistics(folder):
+            info_red("Resetting statistics")
+            stats.probes.clear()
 
-    if tstep % update_statistics == 0:
-        stats(q_['u0'], q_['u1'], q_['u2'])
+        if tstep % update_statistics == 0:
+            stats(q_['u0'], q_['u1'], q_['u2'])
 
-    if tstep % save_statistics == 0:
-        statsfolder = path.join(newfolder, "Stats")
-        stats.toh5(1, tstep,
-                   filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
+        if tstep % save_statistics == 0:
+            statsfolder = path.join(newfolder, "Stats")
+            stats.toh5(1, tstep,
+                       filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
 
     if tstep % check_flux == 0:
         statsfolder = path.join(newfolder, "Stats")
@@ -357,8 +358,10 @@ def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
 
 def theend(newfolder, tstep, stats, spark_puff, init_folder, **NS_namespace):
     """Store statistics before exiting"""
-    statsfolder = path.join(newfolder, "Stats")
-    stats.toh5(1, tstep, filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
+    if stats is not None:
+        statsfolder = path.join(newfolder, "Stats")
+        stats.toh5(1, tstep,
+                   filename=statsfolder+"/dump_vz_{}.h5".format(tstep))
 
 
 def early_hook(mesh, mesh_file, folder, spark_puff, N, F,
