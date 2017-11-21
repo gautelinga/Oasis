@@ -282,16 +282,16 @@ def pre_solve_hook(V, u_, mesh, AssignedVectorFunction, newfolder, MPI,
             pass
     uv = AssignedVectorFunction(u_)
 
-    Nx = 10
-    Ny = 10
-    N = [Nx, Ny]
-    origin = [0., 0., Lz/2]
-    vectors = [[1., 0., 0.], [0., 1., 0.]]
-    dL = [1.-1./Nx, 1.-1./Ny]
+    # Nx = 10
+    # Ny = 10
+    # N = [Nx, Ny]
+    # origin = [0., 0., Lz/2]
+    # vectors = [[1., 0., 0.], [0., 1., 0.]]
+    # dL = [1.-1./Nx, 1.-1./Ny]
+    # stats = StructuredGrid(V, N, origin, vectors, dL, statistics=True)
 
-    stats = StructuredGrid(V, N, origin, vectors, dL, statistics=True)
-
-    return dict(uv=uv, stats=stats)
+    # return dict(uv=uv, stats=stats)
+    return dict(uv=uv)
 
 
 def temporal_hook(q_, u_, V, tstep, t, uv, stats, update_statistics,
