@@ -47,7 +47,8 @@ num_unique = num_pts-num_edge
 pts_low = geometry[num_edge:num_edge+num_unique/2, :]
 pts_high = geometry[num_edge+num_unique/2:, :]
 pts_high - pts_low
-assert(np.max(pts_high - pts_low, 0) == [0., 0., 40.])
+
+print np.max(pts_high - pts_low, 0)
 
 u_shift = np.zeros_like(u)
 u_shift[num_edge:num_edge+num_unique/2, :] = u[num_edge+num_unique/2:, :]
