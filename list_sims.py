@@ -24,7 +24,7 @@ def main():
 
         for subfolder in subfolders:
             params = cp.load(open(os.path.join(folder, "data", subfolder, "Timeseries", "params.dat"), "r"))
-            print folder, subfolder, params["mesh_suffix"]
+            print folder, subfolder, params.get("mesh_suffix", "???")
             
 
 
