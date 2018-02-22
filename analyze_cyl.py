@@ -102,6 +102,10 @@ if __name__ == "__main__":
 
     step_stats = stats[:, 0]
     t_stats = step_stats*dt
+    id_valid = t_stats > args.initial_time
+    stats = stats[id_valid, :]
+    t_stats = t_stats[id_valid]
+    
     ekin_stats = stats[:, 6]/stats[:, 7]
     u_stats = stats[:, 5]/stats[:, 7]
     Re_stats = stats[:, 8]
@@ -183,7 +187,8 @@ if __name__ == "__main__":
     z_r = np.zeros_like(t)
     for step in range(len(t)):
         time = step*save_step*dt
-        uz_mean = u_stats[t_stats == time]
+        idx = (np.abs(t_stats-time)).argmin()
+        uz_mean = u_stats[idx]
 
         flag = q_z_t[step, :]/uz_mean > q_thresh
         # flag2 = np.hstack((flag, flag, [True], flag))
@@ -207,11 +212,12 @@ if __name__ == "__main__":
     F0 = np.zeros_like(t)
     q0 = np.zeros_like(t)
     for i in range(len(t)):
-        z0[i] = z0_stats[t_stats == t[i]]
-        u0[i] = u_stats[t_stats == t[i]]
-        Re0[i] = Re_stats[t_stats == t[i]]
-        F0[i] = F_stats[t_stats == t[i]]
-        q0[i] = q_stats[t_stats == t[i]]
+        idx = (np.abs(t_stats-time)).argmin()
+        z0[i] = z0_stats[idx]
+        u0[i] = u_stats[idx]
+        Re0[i] = Re_stats[idx]
+        F0[i] = F_stats[idx]
+        q0[i] = q_stats[idx]
 
     u_l = derivative(z_l, t)
     u_r = derivative(z_r, t)
