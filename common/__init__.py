@@ -1,6 +1,6 @@
 from io import *
-from utilities import *
-from ductutils import *
+from .utilities import *
+from .ductutils import *
 import sys, json
 
 

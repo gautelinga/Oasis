@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -103,14 +104,14 @@ for basedir in basedirs:
 plots = args.plot.split(",")
 
 for stats_path, t_mod in sims:
-    print "Loading:", stats_path
+    print("Loading:", stats_path)
     if "mount_" in stats_path:
         continue
     data = np.loadtxt(stats_path)
     if data.ndim == 1:
         data = np.array([data])
     info = parse_info(stats_path, servers, default=thishost)
-    # print info, data.shape
+    # print(info, data.shape)
     t = data[:, 1]
 
     label_extra = []

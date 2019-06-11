@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import dolfin as df
 import os
@@ -173,7 +174,7 @@ def probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict):
         assert(time_u == time_p)
         time = time_u
         if rank == 0:
-            print "Time = {}".format(time)
+            print("Time = {}".format(time))
         with h5py.File(file_address_u, "r") as h5f:
             u_data = np.array(h5f[dset_address_u])
         with h5py.File(file_address_p, "r") as h5f:
@@ -323,24 +324,24 @@ if __name__ == "__main__":
         elems = np.array(h5fu.get("Mesh/0/mesh/topology"))
 
     if rank == 0:
-        print "Initializing!"
+        print("Initializing!")
 
     mesh, S, V, x, xdict = initialize(nodes, elems)
 
     xy_mid = np.array([0., 0.])
     R, Lz = get_cyl_dim(nodes, xy_mid)
     if rank == 0:
-        print "Dimensions:", R, Lz
+        print("Dimensions:", R, Lz)
 
     pts_cyl, elems_cyl = cyl_coords(args.Nr, args.Ntheta, args.Nz)
     pts_xyz = cyl2xyz(pts_cyl)
 
     if rank == 0:
-        print "Placing probes..."
+        print("Placing probes...")
     probes = Probes(pts_xyz.flatten(), V)
 
     if rank == 0:
-        print "Initializing functions..."
+        print("Initializing functions...")
 
     u_x = [df.Function(S) for _ in range(3)]
     u = df.Function(V)
@@ -351,17 +352,17 @@ if __name__ == "__main__":
     interpolated_folder = os.path.join(init_folder,
                                        "Interpolated")
     if rank == 0:
-        print "Making folder: " + interpolated_folder
+        print("Making folder: " + interpolated_folder)
         if not os.path.exists(interpolated_folder):
             os.makedirs(interpolated_folder)
 
-        print "Creating snapshot."
+        print("Creating snapshot.")
 
     snapshot_filename = os.path.join(interpolated_folder, "snapshot")
     snapshot = Snapshot(snapshot_filename, elems_cyl, pts_xyz, pts_cyl)
 
     if rank == 0:
-        print "Probing indicator."
+        print("Probing indicator.")
 
     probe(snapshot, probes, u, u_x, p, dsets_u, dsets_p, x, xdict)
 
