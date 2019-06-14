@@ -32,7 +32,8 @@ size = comm.Get_size()
 
 start_from_scratch = False
 # mesh_file = "mesh/rough_channel_H8e-1_A2e-1_10x10x1.h5"
-mesh_file = "mesh/rough_channel_H8e-1_A1e-1_10x10x1.h5"
+# mesh_file = "mesh/rough_channel_H8e-1_A1e-1_10x10x1.h5"
+mesh_file = "mount_lizard/mesh/rough_channel_H8e-1_A1e-1_10x10x1.h5"
 # mesh_file = "mesh/smooth_channel_10x10x1.h5"
 # mesh_file = "mesh/rough_channel_H8e-1_A1_10x10x1.h5"
 # mesh_file = "mesh/rough_channel_H8e-1_A8e-1_10x10x1.h5"
@@ -46,7 +47,8 @@ else:
 # init_folder = "RoughChannel_results/data/2/Timeseries/"
 # init_folder = "init_states/rough_channel_H8e-1_10x10x1_2/Re860/"
 # init_folder = "SmoothChannel_results/data/1/Timeseries/"
-init_folder = folder + "/data/6/Timeseries/"
+# init_folder = folder + "/data/6/Timeseries/"
+init_folder = "mount_lizard/" + folder + "/data/6/Timeseries/"
 h5fu_str = init_folder + "u_from_tstep_0.h5"
 h5fp_str = init_folder + "p_from_tstep_0.h5"
 

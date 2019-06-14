@@ -83,27 +83,28 @@ def save_tstep_solution_h5(tstep, q_, u_, newfolder, tstepfiles, constrained_dom
     timefolder = path.join(newfolder, 'Timeseries')
     if output_timeseries_as_vector:
         # project or store velocity to vector function space
-        for comp, tstepfile in tstepfiles.iteritems():
+        for comp, tstepfile in tstepfiles.items():
             if comp == "u":
-                V = q_['u0'].function_space()
-                # First time around create vector function and assigners
-                if not hasattr(tstepfile, 'uv'):
-                    tstepfile.uv = AssignedVectorFunction(u_)
+                # Create vector function and assigners
+                uv = AssignedVectorFunction(u_)
 
                 # Assign solution to vector
-                tstepfile.uv()
+                uv()
                     
                 # Store solution vector
-                tstepfile.write(tstepfile.uv, float(tstep))
+                tstepfile.write(uv, float(tstep))
             
-            elif comp in q_:                
-                tstepfile.write(q_[comp], float(tstep))
-            
+            elif comp in q_:
+                try:
+                    tstepfile.write(q_[comp], float(tstep))
+                except:
+                    pass
+
             else:
                 tstepfile.write(tstepfile.function, float(tstep))
             
     else:
-        for comp, tstepfile in tstepfiles.iteritems():
+        for comp, tstepfile in tstepfiles.items():
             tstepfile << (q_[comp], float(tstep))
         
     if MPI.rank(MPI.comm_world) == 0:

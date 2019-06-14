@@ -55,9 +55,11 @@ uc_comp  =  u_components + scalar_components
 newfolder, tstepfiles = create_initial_folders(**vars())
 
 # Declare FunctionSpaces and arguments
-V = Q = FunctionSpace(mesh, 'CG', velocity_degree, constrained_domain=constrained_domain)
+V = Q = FunctionSpace(mesh, 'CG', velocity_degree,
+                      constrained_domain=constrained_domain)
 if velocity_degree != pressure_degree:
-    Q = FunctionSpace(mesh, 'CG', pressure_degree, constrained_domain=constrained_domain)
+    Q = FunctionSpace(mesh, 'CG', pressure_degree,
+                      constrained_domain=constrained_domain)
 
 u = TrialFunction(V)
 v = TestFunction(V)
@@ -65,7 +67,8 @@ p = TrialFunction(Q)
 q = TestFunction(Q)
     
 # Use dictionary to hold all FunctionSpaces
-VV = dict((ui, V) for ui in uc_comp); VV['p'] = Q
+VV = dict((ui, V) for ui in uc_comp)
+VV['p'] = Q
 
 # Create dictionaries for the solutions at three timesteps
 q_  = dict((ui, Function(VV[ui], name=ui)) for ui in sys_comp)
@@ -210,7 +213,7 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
         toc = tx.stop()
         info_green('Time = {0:2.4e}, timestep = {1:6d}, End time = {2:2.4e}'.format(t, tstep, T)) 
         info_red('Total computing time on previous {0:d} timesteps = {1:f}'.format(print_intermediate_info, toc))
-        list_timings(TimingClear_clear, [TimingType_wall])
+        list_timings(TimingClear.clear, [TimingType.wall])
         tx.start()
           
     # AB projection for pressure on next timestep
@@ -218,7 +221,7 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
         x_['p'].axpy(0.5, dp_.vector())
                                     
 total_timer.stop()
-list_timings(TimingClear_keep, [TimingType_wall])
+list_timings(TimingClear.keep, [TimingType.wall])
 info_red('Total computing time = {0:f}'.format(total_timer.elapsed()[0]))
 oasis_memory('Final memory use ')
 total_initial_dolfin_memory = MPI.sum(MPI.comm_world, initial_memory_use)
