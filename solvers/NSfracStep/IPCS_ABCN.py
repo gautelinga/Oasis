@@ -24,7 +24,7 @@ def setup(u_components, u, v, p, q, bcs, les_model, nu, nut_,
     K = assemble_matrix(inner(grad(u), grad(v))*dx)
     
     # Allocate stiffness matrix for LES that changes with time
-    KT = None if les_model is None else (Matrix(M), inner(grad(u), grad(v)))
+    KT = None if les_model is "NoModel" else (Matrix(M), inner(grad(u), grad(v)))
     
     # Pressure Laplacian. 
     Ap = assemble_matrix(inner(grad(q), grad(p))*dx, bcs['p'])
@@ -70,7 +70,7 @@ def setup(u_components, u, v, p, q, bcs, les_model, nu, nut_,
     u_ab = as_vector([Function(V) for i in range(len(u_components))])
     a_conv = inner(v, dot(u_ab, nabla_grad(u)))*dx
     a_scalar = a_conv
-    LT = None if les_model is None else LESsource(nut_, u_ab, V, name='LTd')
+    LT = None if les_model is "NoModel" else LESsource(nut_, u_ab, V, name='LTd')
 
     if bcs['p'] == []:
         attach_pressure_nullspace(Ap, x_, Q)
@@ -95,7 +95,7 @@ def get_solvers(use_krylov_solvers, krylov_solvers, bcs,
         ## tentative velocity solver ##
         u_prec = PETScPreconditioner(velocity_krylov_solver['preconditioner_type'])
         u_sol = PETScKrylovSolver(velocity_krylov_solver['solver_type'], u_prec)
-        u_sol.prec = u_prec # Keep from going out of scope
+        #u_sol.prec = u_prec # Keep from going out of scope
         #u_sol = KrylovSolver(velocity_krylov_solver['solver_type'],
         #                     velocity_krylov_solver['preconditioner_type'])
         #u_sol.parameters['preconditioner']['structure'] = 'same_nonzero_pattern'
@@ -164,7 +164,7 @@ def assemble_first_inner_iter(A, a_conv, dt, M, scalar_components, les_model,
         u_ab[i].vector().axpy(-0.5, x_2[ui])      
         
     A = assemble(a_conv, tensor=A)
-    A._scale(-0.5)            # Negative convection on the rhs 
+    A *= -0.5                 # Negative convection on the rhs 
     A.axpy(1./dt, M, True)    # Add mass
     
     #Set up scalar matrix for rhs using the same convection as velocity
@@ -176,7 +176,7 @@ def assemble_first_inner_iter(A, a_conv, dt, M, scalar_components, les_model,
             
     # Add diffusion and compute rhs for all velocity components 
     A.axpy(-0.5*nu, K, True) 
-    if les_model:
+    if not les_model is "NoModel":
         assemble(nut_*KT[1]*dx, tensor=KT[0])
         A.axpy(-0.5, KT[0], True)
         
@@ -184,12 +184,12 @@ def assemble_first_inner_iter(A, a_conv, dt, M, scalar_components, les_model,
         b_tmp[ui].zero()              # start with body force
         b_tmp[ui].axpy(1., b0[ui])
         b_tmp[ui].axpy(1., A*x_1[ui]) # Add transient, convection and diffusion
-        if not les_model is None:
+        if not les_model is "NoModel":
             LT.assemble_rhs(i)
             b_tmp[ui].axpy(1., LT.vector())
         
     # Reset matrix for lhs
-    A._scale(-1.)
+    A *= -1.
     A.axpy(2./dt, M, True)
     [bc.apply(A) for bc in bcs['u0']]
             
@@ -231,7 +231,7 @@ def pressure_assemble(b, x_, dt, Ap, divu, **NS_namespace):
     """Assemble rhs of pressure equation."""
     divu.assemble_rhs() # Computes div(u_)*q*dx
     b['p'][:] = divu.rhs
-    b['p']._scale(-1./dt)
+    b['p'] *= (-1./dt)
     b['p'].axpy(1., Ap*x_['p'])
 
 def pressure_solve(dp_, x_, Ap, b, p_sol, bcs, **NS_namespace):
@@ -250,8 +250,9 @@ def pressure_solve(dp_, x_, Ap, b, p_sol, bcs, **NS_namespace):
     if hasattr(p_sol, 'normalize'):
         normalize(x_['p'])
 
-    dp_.vector().axpy(-1., x_['p'])
-    dp_.vector()._scale(-1.)
+    dpv = dp_.vector()
+    dpv.axpy(-1., x_['p'])
+    dpv *= -1.
 
 def velocity_update(u_components, bcs, gradp, dp_, dt, x_, **NS_namespace):
     """Update the velocity after regular pressure velocity iterations."""
@@ -266,14 +267,14 @@ def scalar_assemble(a_scalar, a_conv, Ta , dt, M, scalar_components, Schmidt_T, 
     # Just in case you want to use a different scalar convection
     if not a_scalar is a_conv:
         assemble(a_scalar, tensor=Ta)
-        Ta._scale(-0.5)            # Negative convection on the rhs 
+        Ta *= -0.5            # Negative convection on the rhs 
         Ta.axpy(1./dt, M, True)    # Add mass
         
     # Compute rhs for all scalars
     for ci in scalar_components:
         # Add diffusion
         Ta.axpy(-0.5*nu/Schmidt[ci], K, True)
-        if les_model:
+        if not les_model is "NoModel":
             Ta.axpy(-0.5/Schmidt_T[ci], KT[0], True)
             
         # Compute rhs
@@ -283,11 +284,11 @@ def scalar_assemble(a_scalar, a_conv, Ta , dt, M, scalar_components, Schmidt_T, 
         
         # Subtract diffusion
         Ta.axpy(0.5*nu/Schmidt[ci], K, True)
-        if les_model:
+        if not les_model is "NoModel":
             Ta.axpy(0.5/Schmidt_T[ci], KT[0], True)
             
     # Reset matrix for lhs - Note scalar matrix does not contain diffusion
-    Ta._scale(-1.)
+    Ta *= -1.
     Ta.axpy(2./dt, M, True)
 
 def scalar_solve(ci, scalar_components, Ta, b, x_, bcs, c_sol, 

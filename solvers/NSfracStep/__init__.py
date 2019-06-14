@@ -11,7 +11,7 @@ __all__ = ["assemble_first_inner_iter", "velocity_tentative_assemble",
            "velocity_tentative_solve", "pressure_assemble", 
            "pressure_solve", "velocity_update", "scalar_assemble", 
            "scalar_solve", "get_solvers", "setup", 
-           "print_velocity_pressure_info"]
+           "print_velocity_pressure_info", "LES"]
 
 def get_solvers(**NS_namespace):
     """Return 4 linear solvers. 

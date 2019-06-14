@@ -47,7 +47,7 @@ exec("from solvers.NSfracStep.{} import *".format(solver))
 
 # Create lists of components solved for
 dim = mesh.geometry().dim()
-u_components = map(lambda x: 'u'+str(x), range(dim))
+u_components = list(map(lambda x: 'u'+str(x), range(dim)))
 sys_comp =  u_components + ['p'] + scalar_components
 uc_comp  =  u_components + scalar_components
 
@@ -136,7 +136,8 @@ vars().update(pre_solve_hook(**vars()))
 #if parameters["form_compiler"].has_key("no_ferari") and not solver in ("IPCS", "Chorin"):
 #    parameters["form_compiler"].remove("no_ferari")
 
-tic()
+tx = OasisTimer("Timer")
+tx.start()
 stop = False
 total_timer = OasisTimer("Start simulations", True)
 while t < (T - tstep*DOLFIN_EPS) and not stop:
@@ -206,10 +207,11 @@ while t < (T - tstep*DOLFIN_EPS) and not stop:
 
     # Print some information
     if tstep % print_intermediate_info == 0:
+        toc = tx.stop()
         info_green('Time = {0:2.4e}, timestep = {1:6d}, End time = {2:2.4e}'.format(t, tstep, T)) 
-        info_red('Total computing time on previous {0:d} timesteps = {1:f}'.format(print_intermediate_info, toc()))
+        info_red('Total computing time on previous {0:d} timesteps = {1:f}'.format(print_intermediate_info, toc))
         list_timings(TimingClear_clear, [TimingType_wall])
-        tic()
+        tx.start()
           
     # AB projection for pressure on next timestep
     if AB_projection_pressure and t < (T - tstep*DOLFIN_EPS) and not stop:
@@ -219,7 +221,7 @@ total_timer.stop()
 list_timings(TimingClear_keep, [TimingType_wall])
 info_red('Total computing time = {0:f}'.format(total_timer.elapsed()[0]))
 oasis_memory('Final memory use ')
-total_initial_dolfin_memory = MPI.sum(mpi_comm_world(), initial_memory_use)
+total_initial_dolfin_memory = MPI.sum(MPI.comm_world, initial_memory_use)
 info_red('Memory use for importing dolfin = {} MB (RSS)'.format(total_initial_dolfin_memory))
 info_red('Total memory use of solver = ' + str(oasis_memory.memory - total_initial_dolfin_memory) + " MB (RSS)")
 

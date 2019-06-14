@@ -22,9 +22,9 @@ def make_dof_coords(S):
     my_first, my_last = dofmap.ownership_range()
     x = S.tabulate_dof_coordinates().reshape((-1, 3))
     unowned = dofmap.local_to_global_unowned()
-    dofs = filter(lambda dof: dofmap.local_to_global_index(dof)
-                  not in unowned,
-                  xrange(my_last-my_first))
+    dofs = list(filter(lambda dof: dofmap.local_to_global_index(dof)
+                       not in unowned,
+                       range(my_last-my_first)))
     x = x[dofs]
     return x
 
@@ -43,7 +43,7 @@ def tabulate_inlet_wall_nodes(nodes, elems):
     info_green("Building inlet wall nodes")
     node_ids = set(np.where(nodes[:, 2] == 0.)[0])
     faces = []
-    for i in xrange(rank, len(elems), size):
+    for i in range(rank, len(elems), size):
         row = elems[i, :]
         nodes_in_node_ids = []
         for node in row:
@@ -58,7 +58,7 @@ def tabulate_inlet_wall_nodes(nodes, elems):
     faces = comm.bcast(faces, root=0)
     edges = set()
     for face in faces:
-        for i in xrange(3):
+        for i in range(3):
             seg = [face[i], face[(i+1) % 3]]
             seg.sort()
             seg = tuple(seg)
@@ -80,7 +80,7 @@ def tabulate_wall_nodes(nodes, elems, dim):
     info_green("Dimension: " + str(dim))
     node_ids = set(np.where(nodes[:, dim] == 0.)[0])
     faces = []
-    for i in xrange(rank, len(elems), size):
+    for i in range(rank, len(elems), size):
         row = elems[i, :]
         nodes_in_node_ids = []
         for node in row:
@@ -95,7 +95,7 @@ def tabulate_wall_nodes(nodes, elems, dim):
     faces = comm.bcast(faces, root=0)
     edges = set()
     for face in faces:
-        for i in xrange(3):
+        for i in range(3):
             seg = [face[i], face[(i+1) % 3]]
             seg.sort()
             seg = tuple(seg)
@@ -107,7 +107,7 @@ def tabulate_wall_nodes(nodes, elems, dim):
     wall_nodes = np.unique(edges.flatten())
 
     wall_coords = set()
-    perp_dims = range(3)
+    perp_dims = list(range(3))
     perp_dims.pop(dim)
     for node in wall_nodes:
         wall_coords.add(tuple(nodes[node, perp_dims]))

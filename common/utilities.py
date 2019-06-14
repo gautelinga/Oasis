@@ -33,7 +33,7 @@ class Solver_cache_dict(dict):
         form, bcs, solver_type, preconditioner_type = key
         prec = PETScPreconditioner(preconditioner_type)
         sol = PETScKrylovSolver(solver_type, prec)
-        sol.prec = prec
+        #sol.prec = prec
         #sol = KrylovSolver(solver_type, preconditioner_type)
         
         #sol.parameters["preconditioner"]["structure"] = "same"
