@@ -109,7 +109,7 @@ def save_tstep_solution_h5(tstep, q_, u_, newfolder, tstepfiles, constrained_dom
         
     if MPI.rank(MPI.comm_world) == 0:
         if not path.exists(path.join(timefolder, "params.dat")):
-            f = open(path.join(timefolder, 'params.dat'), 'w')
+            f = open(path.join(timefolder, 'params.dat'), 'wb')
             cPickle.dump(NS_parameters,  f)
 
 def save_checkpoint_solution_h5(tstep, q_, q_1, newfolder, u_components, 
@@ -129,7 +129,7 @@ def save_checkpoint_solution_h5(tstep, q_, q_1, newfolder, u_components,
         if path.exists(path.join(checkpointfolder, "params.dat")):
             system('cp {0} {1}'.format(path.join(checkpointfolder, "params.dat"),
                                         path.join(checkpointfolder, "params_old.dat")))
-        f = open(path.join(checkpointfolder, "params.dat"), 'w')
+        f = open(path.join(checkpointfolder, "params.dat"), 'wb')
         cPickle.dump(NS_parameters,  f)
         
     MPI.barrier(MPI.comm_world)
